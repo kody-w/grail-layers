@@ -303,9 +303,8 @@ def run_apply(a, kernel):
         print(json.dumps({"ok": False, "refused": str(e)})); return 2
     shape = t["payload"]["object"]
     try:
-        for part in shape["parts"]:
-            if part["kind"] == "layer":
-                hologram.fetch_part(HOME / "parts", part)
+        for part in shape["parts"]:  # every kind: a kernel part is fetched and pinned exactly like a layer
+            hologram.fetch_part(HOME / "parts", part)
     except Exception as e:
         hologram.gate(chain, t, "lab", False, {"why": f"part not available: {e}"})
         print(json.dumps({"ok": False, "tile": t["seq"], "refused": f"part not available: {e}"})); return 2
