@@ -34,19 +34,36 @@ HERE = Path(__file__).resolve().parent
 LOG = HERE / "layers.log"
 
 BOOT = r'''
-import importlib.util, os, runpy, sys, traceback
+import ast, hashlib, importlib.util, os, runpy, sys, traceback
 kernel, layers_dir, names = sys.argv[1], sys.argv[2], [n for n in sys.argv[3].split(",") if n]
-applied = []
+grail_sha = hashlib.sha256(open(kernel, "rb").read()).hexdigest()
+unpinned = os.environ.get("GRAIL_LAYERS_UNPINNED") == "1"
+applied, skipped = [], []
 for n in names:
     try:
-        spec = importlib.util.spec_from_file_location("grail_layer_" + n, os.path.join(layers_dir, n + ".py"))
+        path = os.path.join(layers_dir, n + ".py")
+        proven = set()
+        for node in ast.parse(open(path).read()).body:  # the layer's own PROVEN_GRAIL set, read without running it
+            if isinstance(node, ast.Assign) and any(getattr(t, "id", "") == "PROVEN_GRAIL" for t in node.targets):
+                proven = set(ast.literal_eval(node.value))
+        if grail_sha not in proven and not unpinned:
+            skipped.append(n)
+            print(f"[grail-layers] layer {n} is not proven for this grail ({grail_sha[:12]}); skipped", flush=True)
+            continue
+        spec = importlib.util.spec_from_file_location("grail_layer_" + n, path)
         m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
         m.apply()
         applied.append(n)
     except Exception:
         print(f"[grail-layers] layer {n} failed to apply, skipped:\n{traceback.format_exc()}", flush=True)
 os.environ["GRAIL_LAYERS_APPLIED"] = ",".join(applied)
-print(f"[grail-layers] applied: {applied or 'none'}", flush=True)
+os.environ["GRAIL_LAYERS_SKIPPED"] = ",".join(skipped)
+try:
+    import json as _j
+    open(os.path.join(os.path.dirname(layers_dir.rstrip("/")), "applied.json"), "w").write(_j.dumps({"grail_sha256": grail_sha, "applied": applied, "skipped_unproven": skipped}))
+except Exception:
+    pass
+print(f"[grail-layers] grail {grail_sha[:12]}; applied: {applied or 'none'}; skipped (unproven): {skipped or 'none'}", flush=True)
 sys.argv = [kernel]
 sys.path.insert(0, os.path.dirname(kernel))
 os.chdir(os.path.dirname(kernel))
@@ -131,7 +148,14 @@ def main():
         p = start(kernel, [], a.port, a.python)
         ok, why = healthy(p, a.port, False)
         layers = []
-    log(("running grail + " + ",".join(layers)) if layers else "running plain grail" + f" on port {a.port}: {why}")
+    if layers:
+        try:
+            rep = json.loads((HERE / "applied.json").read_text())
+            layers, skipped = rep.get("applied", layers), rep.get("skipped_unproven", [])
+            why += f"; grail {rep.get('grail_sha256', '')[:12]}" + (f"; skipped as unproven: {','.join(skipped)}" if skipped else "")
+        except Exception:
+            pass
+    log((("running grail + " + ",".join(layers)) if layers else "running plain grail") + f" on port {a.port}: {why}")
     signal.signal(signal.SIGTERM, lambda *_: (stop(p), sys.exit(0)))
     try:
         sys.exit(p.wait())

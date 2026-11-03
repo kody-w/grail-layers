@@ -1,0 +1,34 @@
+[grail-layers] running grail + responses_models
+Traceback (most recent call last):
+  File "/Users/kodywildfeuer/Wildhaven/grail-layers/grail_layers.py", line 121, in stop
+    p.wait(15)
+  File "/opt/homebrew/Cellar/python@3.11/3.11.18/Frameworks/Python.framework/Versions/3.11/lib/python3.11/subprocess.py", line 1264, in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.11/3.11.18/Frameworks/Python.framework/Versions/3.11/lib/python3.11/subprocess.py", line 2045, in _wait
+    raise TimeoutExpired(self.args, timeout)
+subprocess.TimeoutExpired: Command '['/Users/kodywildfeuer/.brainstem/venv/bin/python', '-c', '\nimport ast, hashlib, importlib.util, os, runpy, sys, traceback\nkernel, layers_dir, names = sys.argv[1], sys.argv[2], [n for n in sys.argv[3].split(",") if n]\ngrail_sha = hashlib.sha256(open(kernel, "rb").read()).hexdigest()\nunpinned = os.environ.get("GRAIL_LAYERS_UNPINNED") == "1"\napplied, skipped = [], []\nfor n in names:\n    try:\n        path = os.path.join(layers_dir, n + ".py")\n        proven = set()\n        for node in ast.parse(open(path).read()).body:  # the layer\'s own PROVEN_GRAIL set, read without running it\n            if isinstance(node, ast.Assign) and any(getattr(t, "id", "") == "PROVEN_GRAIL" for t in node.targets):\n                proven = set(ast.literal_eval(node.value))\n        if grail_sha not in proven and not unpinned:\n            skipped.append(n)\n            print(f"[grail-layers] layer {n} is not proven for this grail ({grail_sha[:12]}); skipped", flush=True)\n            continue\n        spec = importlib.util.spec_from_file_location("grail_layer_" + n, path)\n        m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\n        m.apply()\n        applied.append(n)\n    except Exception:\n        print(f"[grail-layers] layer {n} failed to apply, skipped:\\n{traceback.format_exc()}", flush=True)\nos.environ["GRAIL_LAYERS_APPLIED"] = ",".join(applied)\nos.environ["GRAIL_LAYERS_SKIPPED"] = ",".join(skipped)\nprint(f"[grail-layers] grail {grail_sha[:12]}; applied: {applied or \'none\'}; skipped (unproven): {skipped or \'none\'}", flush=True)\nsys.argv = [kernel]\nsys.path.insert(0, os.path.dirname(kernel))\nos.chdir(os.path.dirname(kernel))\nrunpy.run_path(kernel, run_name="__main__")\n', '/Users/kodywildfeuer/Wildhaven/brainstem-distro-lab/grail-0616/brainstem.py', '/Users/kodywildfeuer/Wildhaven/brainstem-distro-lab/layers/layers', 'responses_models']' timed out after 15 seconds
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/kodywildfeuer/Wildhaven/grail-layers/grail_layers.py", line 155, in <module>
+    main()
+  File "/Users/kodywildfeuer/Wildhaven/grail-layers/grail_layers.py", line 149, in main
+    sys.exit(p.wait())
+             ^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.11/3.11.18/Frameworks/Python.framework/Versions/3.11/lib/python3.11/subprocess.py", line 1264, in wait
+    return self._wait(timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.11/3.11.18/Frameworks/Python.framework/Versions/3.11/lib/python3.11/subprocess.py", line 2053, in _wait
+    (pid, sts) = self._try_wait(0)
+                 ^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.11/3.11.18/Frameworks/Python.framework/Versions/3.11/lib/python3.11/subprocess.py", line 2011, in _try_wait
+    (pid, sts) = os.waitpid(self.pid, wait_flags)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/kodywildfeuer/Wildhaven/grail-layers/grail_layers.py", line 147, in <lambda>
+    signal.signal(signal.SIGTERM, lambda *_: (stop(p), sys.exit(0)))
+                                              ^^^^^^^
+  File "/Users/kodywildfeuer/Wildhaven/grail-layers/grail_layers.py", line 123, in stop
+    os.killpg(p.pid, signal.SIGKILL)
+PermissionError: [Errno 1] Operation not permitted

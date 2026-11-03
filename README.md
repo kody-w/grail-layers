@@ -40,6 +40,10 @@ def apply():
 ```
 
 Rules:
+- **Pinned to the grail it was proven on.** The file declares `PROVEN_GRAIL = {"<sha256 of brainstem.py>", ...}`.
+  The supervisor computes the running grail's sha256 and skips any layer not in that set (logged as
+  "skipped as unproven"), so a new grail release can never run an unproven layer. Re-prove and add the
+  sha for each grail release; `GRAIL_LAYERS_UNPINNED=1` lifts this only in a lab.
 - **Wrap, never replace.** Hold a reference to the original call and fall back to it on any exception.
 - **Additive only.** Old requests behave exactly as before. A layer may add capability, never remove it.
 - **No files written into the grail's folders.** Layer state lives under `~/.brainstem/layers/`.
@@ -62,4 +66,4 @@ Rules:
 
 | Layer | Adds | Proven |
 |---|---|---|
-| `responses_models` | Responses-API-only models (gpt-6.1-sol, gpt-6-luna and others) in the unchanged grail | Model list went from 21 to 35; a gpt-6.1-sol chat called an agent through it; a broken layer fell back to plain grail (1 of 1) |
+| `responses_models` | Responses-API-only models (gpt-6.1-sol, gpt-6-luna and others) in the unchanged grail | Proven on grail 0.6.16 (public) and 0.6.17: model list 21 → 35; a gpt-6.1-sol chat called an agent through it on both; a broken layer fell back to plain grail; an unproven grail copy skipped the layer and ran plain (each 1 of 1) |

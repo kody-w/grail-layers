@@ -1,0 +1,32 @@
+[grail-layers] grail bd55a7f0bcf5; applied: ['responses_models']; skipped (unproven): none
+
+🧠 RAPP Brainstem v0.6.16 starting on http://localhost:7194
+[brainstem] Copilot token restored from cache (expires in 24090s)
+   Soul:   /Users/kodywildfeuer/Wildhaven/brainstem-distro-lab/grail-0616/soul.md
+   Agents: /Users/kodywildfeuer/Wildhaven/brainstem-distro-lab/grail-0616/agents
+   Model:  claude-haiku-5.5
+   Voice:  off (POST /voice/toggle to change)
+   Auth:   GitHub Copilot API (via gh CLI)
+
+[brainstem] Soul loaded: /Users/kodywildfeuer/Wildhaven/brainstem-distro-lab/grail-0616/soul.md
+[brainstem] Local storage shims registered
+[brainstem] Agent loaded: ClaudeWorkflows
+[brainstem] Agent loaded: LearnNew
+[brainstem] Agent loaded: RapplicationSdk
+[brainstem] Agent loaded: Neuron
+[brainstem] Agent loaded: HelloWorldAgent
+[brainstem] Agent loaded: RegressionJudge
+[brainstem] Agent loaded: Summon
+[brainstem] Agent loaded: WorkflowBuilder
+[brainstem] 8 agent(s) ready.
+   LAN:    disabled (set BRAINSTEM_LAN_MODE=true to opt in)
+ * Serving Flask app 'brainstem'
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:7194
+[33mPress CTRL+C to quit[0m
+127.0.0.1 - - [03/Nov/2026 12:24:07] "GET /health HTTP/1.1" 200 -
+127.0.0.1 - - [03/Nov/2026 12:24:08] "POST /chat HTTP/1.1" 200 -
+127.0.0.1 - - [03/Nov/2026 12:24:08] "GET /models HTTP/1.1" 200 -
+127.0.0.1 - - [03/Nov/2026 12:24:08] "POST /models/set HTTP/1.1" 200 -
+127.0.0.1 - - [03/Nov/2026 12:24:12] "POST /chat HTTP/1.1" 200 -
