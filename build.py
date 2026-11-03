@@ -48,6 +48,8 @@ CHAOS             python3 chaos.py --kernel <brainstem.py>  breaks a SCRATCH cop
   Brainstem and hears why; report at ~/.brainstem/layers/chaos/latest.json. The installer schedules it nightly.
   In chat: drop brainstem_shape_agent.py into agents/ and say "what am I running", "update my brainstem with …",
   "undo", "what changed since Tuesday".
+  A pack may list parts it does NOT seed (install.seed names the seeded ones): e.g. @kody-w/lispy_brainstem, the
+  LisPy kernel as one file; say "update my brainstem with @kody-w/lispy_brainstem" to try it (lab first, undo any time).
 KINDS             layer = a Python file applied in memory over the unchanged grail (declares PROVEN_GRAIL shas and
   TOUCHES hook points; unproven or clashing layers are skipped and said so). kernel = a whole Brainstem that
   replaces brainstem.py (e.g. the LisPy kernel, examples/brainstem-kernel in kody-w/lisppy); it gets the user's

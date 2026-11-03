@@ -43,6 +43,9 @@ if not parts:  # pack < 1.2: the legacy layers list, lifted into part records (a
     parts = [{"id": f"@kody-w/{p[:-3]}", "kind": "layer", "point": "provider", "file": p,
               "sha256": pack["files"][p]["sha256"], "locator": f"{rar}/{p}"}
              for p in inst["layers"] if p[:-3] in inst.get("default_enabled", [p[:-3] for p in inst["layers"]])]
+seed = inst.get("seed")  # pack >= 1.2.1: which parts the installer seeds; others are published for "update my brainstem with …"
+if seed is not None:
+    parts = [p for p in parts if p["id"] in seed]
 seeded = []
 for part in parts:
     part = {k: part[k] for k in KEYS}

@@ -146,6 +146,7 @@ def start(kernel, shape, port, py, report_dir):
         entry = hologram.part_path(HOME / "parts", kernels[0])
         env.setdefault("AGENTS_PATH", os.path.join(os.path.dirname(kernel), "agents"))
         env.setdefault("SOUL_PATH", os.path.join(os.path.dirname(kernel), "soul.md"))
+        env.setdefault("BRAINSTEM_DATA_DIR", os.path.join(os.path.dirname(kernel), ".brainstem_data"))  # GODD data follows
         cmd, cwd = [py, str(entry)], str(entry.parent)
     elif layers:
         cmd, cwd = [py, str(HERE / "grail_layers.py"), "--boot", kernel, str(HOME / "parts"), ",".join(layers)], os.path.dirname(kernel)
