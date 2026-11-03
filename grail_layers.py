@@ -201,6 +201,17 @@ def open_chain(kernel):
     """The device's chain; genesis on first boot; migrate a legacy `enabled` list into the first tile."""
     HOME.mkdir(parents=True, exist_ok=True)
     chain = hologram.genesis(HOME / "chain.jsonl", kernel)
+    seeded = HOME / "parts.json"  # written by the installer from the pack's publisher-scoped parts (pack >= 1.2)
+    if len(chain.frames) == 1 and seeded.is_file():
+        parts = [p for p in json.loads(seeded.read_text())
+                 if hologram.part_path(HOME / "parts", p).is_file()
+                 and hologram.sha256_file(hologram.part_path(HOME / "parts", p)) == p["sha256"]]
+        if parts:
+            t = hologram.tile(chain, {"action": "set", "parts": parts}, {"kind": "process", "name": "install-from-pack"})
+            hologram.gate(chain, t, "lab", True, {"why": "seeded from the pack by the installer: every part's bytes match its "
+                                                         "sha256; the live gate at this boot is the real proof"})
+            log(f"seeded the chain from the installed pack into tile #{t['seq']}")
+        return chain
     enabled = HOME / "enabled"
     if len(chain.frames) == 1 and enabled.is_file():
         import hashlib, shutil

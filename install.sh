@@ -24,7 +24,7 @@ KERNEL="$BS/src/rapp_brainstem/brainstem.py"
 PY="$BS/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
 
 say "Step 2 of 3: installing layers from RAR"
-mkdir -p "$DEST/layers"
+mkdir -p "$DEST/parts"
 for f in grail_layers.py hologram.py shape_lens.py rapp.py brainstem_shape_agent.py chaos.py; do   # supervisor + hologram (rapp/1 chain, the one lens) + chat agent
   curl -fsSL "$SELF/$f" -o "$DEST/$f.new" && mv "$DEST/$f.new" "$DEST/$f"
 done
@@ -36,16 +36,27 @@ curl -fsSL "$RAR/pack.json" -o "$DEST/pack.json"
 import hashlib, json, sys, urllib.request, pathlib
 dest, rar = pathlib.Path(sys.argv[1]), sys.argv[2]
 pack = json.loads((dest / "pack.json").read_text())
-names = []
-for path in pack["install"]["layers"]:
-    b = urllib.request.urlopen(f"{rar}/{path}", timeout=60).read()
-    if hashlib.sha256(b).hexdigest() != pack["files"][path]["sha256"]:
-        sys.exit(f"sha256 mismatch for {path}; refusing to install it")
-    (dest / "layers" / path).write_bytes(b)
-    names.append(path[:-3])
-want = [n for n in pack["install"].get("default_enabled", names) if n in names]
-(dest / "enabled").write_text("\n".join(want) + "\n")
-print("layers installed:", ", ".join(names), "| enabled:", ", ".join(want) or "none")
+inst = pack["install"]
+KEYS = ("id", "kind", "point", "file", "sha256", "locator")  # a part is exactly these (brainstem-shape/1)
+parts = inst.get("parts")
+if not parts:  # pack < 1.2: the legacy layers list, lifted into part records (alias path; same bytes, same pins)
+    parts = [{"id": f"@kody-w/{p[:-3]}", "kind": "layer", "point": "provider", "file": p,
+              "sha256": pack["files"][p]["sha256"], "locator": f"{rar}/{p}"}
+             for p in inst["layers"] if p[:-3] in inst.get("default_enabled", [p[:-3] for p in inst["layers"]])]
+seeded = []
+for part in parts:
+    part = {k: part[k] for k in KEYS}
+    pub, name = part["id"][1:].split("/", 1)
+    b = urllib.request.urlopen(part["locator"], timeout=60).read()
+    if hashlib.sha256(b).hexdigest() != part["sha256"]:
+        sys.exit(f"sha256 mismatch for {part['id']}; refusing to install it")
+    target = dest / "parts" / pub / name / part["file"]
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(b)
+    seeded.append(part)
+(dest / "parts.json").write_text(json.dumps(seeded, indent=1) + "\n")
+print("parts installed:", ", ".join(p["id"] for p in seeded) or "none",
+      "| the device's chain is seeded from them at first boot; after that, change the shape through chat")
 PY
 
 say "Step 3 of 3: starting the Brainstem as grail + layers"
