@@ -42,7 +42,10 @@ LOG = HOME / "layers.log"
 SCHEMA_PLAIN = "brainstem-shape/1"
 sys.path.insert(0, str(HERE))
 import hologram  # noqa: E402  (rapp/1 chain + the one lens)
-import succession  # noqa: E402  (whose Brainstem this is, who inherits)
+try:
+    import succession  # noqa: E402  (whose Brainstem this is, who inherits)
+except ImportError:  # the three-module wire (grail_layers, hologram, shape_lens) still boots; succession is optional
+    succession = None
 
 
 def apply_layers(kernel_bytes, layers_dir, names, report_dir=None):
@@ -250,6 +253,8 @@ def run_live(a, kernel):
     safe = a.plain or os.environ.get("GRAIL_SAFE_MODE") == "1"
     shape, tile_frame = chain.authorised()
     try:
+        if succession is None:
+            raise SystemExit("succession.py is not installed beside the supervisor")
         sx = succession.state(chain.frames)
         if sx["status"] == "refused":
             log("succession record refused: " + sx["why"]); notices.append("My ownership record has a problem: " + sx["why"])
@@ -419,11 +424,14 @@ def main():
         venv = Path(kernel).parent.parent.parent / "venv" / "bin" / "python"
         a.python = str(venv) if venv.is_file() else sys.executable
     if a.mint_key or a.name_successor or a.pulse or a.handoff or a.handoff_as_successor or a.who:
+        if succession is None:
+            sys.exit("succession.py is not installed beside the supervisor (re-run the grail-layers install.sh)")
         sys.exit(run_succession(a, kernel))
     if a.status:
         chain = open_chain(kernel)
         print(hologram.describe(chain, HOME / "parts"))
-        print("  " + succession.describe(succession.state(chain.frames)))
+        if succession is not None:
+            print("  " + succession.describe(succession.state(chain.frames)))
         if LAST_BOOT.is_file():
             lb = json.loads(LAST_BOOT.read_text())
             print(f"  last boot {lb['utc']}: {lb['what']} ({lb['why']})" + ("".join("\n  ! " + n for n in lb.get("notices", []))))

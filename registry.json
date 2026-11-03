@@ -1,7 +1,7 @@
 {
   "schema": "grail-layers-registry/1.0",
   "spec": "rapp-static-api/1.1",
-  "generated": "2026-11-03T21:10:56Z",
+  "generated": "2026-11-03T21:24:29Z",
   "pages": "https://kody-w.github.io/grail-layers/",
   "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/",
   "summary": {
@@ -25,10 +25,10 @@
     },
     {
       "name": "grail_layers.py",
-      "sha256": "dc176ffdf9d274dff662b0ffc7bee7053701a7d02aa919b8bae1efd2838b611a",
+      "sha256": "5cafc51728ed161a61d25606b001262d4477f2acc3c5478cba6c56bfe3268b19",
       "url": "https://kody-w.github.io/grail-layers/grail_layers.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/grail_layers.py",
-      "sha8": "dc176ffdf9d2"
+      "sha8": "5cafc51728ed"
     },
     {
       "name": "hologram.py",
