@@ -74,6 +74,9 @@ Rules:
 - **Declare what you touch.** `TOUCHES = {"requests.post", ...}` names the hook points the layer wraps.
   Two enabled layers touching the same point conflict: the earlier one in the pack's order applies, the
   later is skipped and logged. Never silent last-wins (the Dynamics 365 solution-layering lesson).
+  A layer that composes instead (it calls through to whatever an earlier layer left at the point) declares
+  `WRAPS = {"requests.post", ...}`: it chains onto the earlier layer, and a later `TOUCHES` on that point is
+  still refused, so no layer can silently replace the chain.
 - **Published layers only.** A layer loads only if it came from RAR with a matching sha256. A local file
   loads only in lab mode (`GRAIL_LAYERS_UNPINNED=1`) and is logged as such, so no ad hoc layer can sit
   on top of published ones unseen (the D365 "unmanaged layer always wins" lesson).

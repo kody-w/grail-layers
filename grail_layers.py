@@ -60,7 +60,7 @@ def apply_layers(kernel_bytes, layers_dir, names, report_dir=None):
         path = n if os.sep in n else os.path.join(layers_dir, n + ".py")
         label = os.path.basename(path)[:-3]
         try:
-            proven, touches = set(), set()
+            proven, touches, wraps = set(), set(), set()
             for node in ast.parse(open(path).read()).body:  # the layer's own sets, read without running it
                 if isinstance(node, ast.Assign):
                     ids = {getattr(t, "id", "") for t in node.targets}
@@ -68,6 +68,8 @@ def apply_layers(kernel_bytes, layers_dir, names, report_dir=None):
                         proven = set(ast.literal_eval(node.value))
                     if "TOUCHES" in ids:
                         touches = set(ast.literal_eval(node.value))
+                    if "WRAPS" in ids:  # composes: calls through to whatever an earlier layer left at the point
+                        wraps = set(ast.literal_eval(node.value))
             if grail_sha not in proven and not unpinned:
                 skipped[label] = "unproven for this grail"
                 print(f"[grail-layers] layer {label} is not proven for this grail ({grail_sha[:12]}); skipped", flush=True)
@@ -77,7 +79,8 @@ def apply_layers(kernel_bytes, layers_dir, names, report_dir=None):
                 skipped[label] = "conflict on " + ",".join(sorted(clash))
                 print(f"[grail-layers] layer {label} conflicts on {sorted(clash)} with an earlier layer; skipped", flush=True)
                 continue
-            taken |= touches
+            taken |= touches | wraps  # a WRAPS point is composable (this layer chains to the earlier one) but a
+            # later TOUCHES on it would silently replace the chain, so it is still taken
             spec = importlib.util.spec_from_file_location("grail_layer_" + label, path)
             m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
             m.apply()
