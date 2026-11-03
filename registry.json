@@ -1,41 +1,41 @@
 {
   "schema": "grail-layers-registry/1.0",
   "spec": "rapp-static-api/1.1",
-  "generated": "2026-11-03T19:37:14Z",
+  "generated": "2026-11-03T20:06:28Z",
   "pages": "https://kody-w.github.io/grail-layers/",
   "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/",
   "summary": {
-    "files": 9,
+    "files": 10,
     "layers_source": "https://kody-w.github.io/RAR/stacks/grail-layers/pack.json"
   },
   "entries": [
     {
       "name": "install.sh",
-      "sha256": "e45a504f301d0877b02880cf222bff66a0b5607e18f1be8c38d461b622cbc01f",
+      "sha256": "aedc113c0fc29f5a3781c35ac82c282706acaff2ae2efc3804a73aa093a4ca6e",
       "url": "https://kody-w.github.io/grail-layers/install.sh",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/install.sh",
-      "sha8": "e45a504f301d"
+      "sha8": "aedc113c0fc2"
     },
     {
       "name": "uninstall.sh",
-      "sha256": "fad55bfe0c761800191cebd71126d2e1bd6cde9e52d385978a57055e8db708df",
+      "sha256": "5607601226f464f46a50539ef6a5967edeb072d1824925ddd637845b8f8c3833",
       "url": "https://kody-w.github.io/grail-layers/uninstall.sh",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/uninstall.sh",
-      "sha8": "fad55bfe0c76"
+      "sha8": "5607601226f4"
     },
     {
       "name": "grail_layers.py",
-      "sha256": "f13ea5dc938e53a6d649f754e4d37817655d4d97460eabfd078d31f425b5dd1d",
+      "sha256": "21e3f5970286eaa2d0c4e0a7434591925047bd5547a5b2a81ce99617190c67cb",
       "url": "https://kody-w.github.io/grail-layers/grail_layers.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/grail_layers.py",
-      "sha8": "f13ea5dc938e"
+      "sha8": "21e3f5970286"
     },
     {
       "name": "hologram.py",
-      "sha256": "1b58e6b10deb5988dd62f699c8ec501ea72e554880d37200587ef6ae4a47fb69",
+      "sha256": "74d16f5ba2ab9121345707675bfd3fed5954f2c9e3f8b1889527191f76f7fedb",
       "url": "https://kody-w.github.io/grail-layers/hologram.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/hologram.py",
-      "sha8": "1b58e6b10deb"
+      "sha8": "74d16f5ba2ab"
     },
     {
       "name": "shape_lens.py",
@@ -53,10 +53,17 @@
     },
     {
       "name": "brainstem_shape_agent.py",
-      "sha256": "3f8a50785f0f2f6b4ae8a5e3e7a84ba2536aee089e415eac68b5fb699fc3dcf7",
+      "sha256": "c8820c4251068b32105e45f72a405c8692914a0459d1a77bbeea9408f135cf9a",
       "url": "https://kody-w.github.io/grail-layers/brainstem_shape_agent.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/brainstem_shape_agent.py",
-      "sha8": "3f8a50785f0f"
+      "sha8": "c8820c425106"
+    },
+    {
+      "name": "chaos.py",
+      "sha256": "f7986c0a5334662754806f45c6c3761a4e0de29593d57f2c7106e8aad16ab7e8",
+      "url": "https://kody-w.github.io/grail-layers/chaos.py",
+      "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/chaos.py",
+      "sha8": "f7986c0a5334"
     },
     {
       "name": "README.md",
@@ -67,10 +74,10 @@
     },
     {
       "name": "llms.txt",
-      "sha256": "06f993b11583a82da956e896cf64d4c4e640a8bb20a19688b12b485470765e61",
+      "sha256": "439a8e9d2d67780faf176afefa3d29ac5f4ac9f7153a84fbdf7c1e0026fbd851",
       "url": "https://kody-w.github.io/grail-layers/llms.txt",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/llms.txt",
-      "sha8": "06f993b11583"
+      "sha8": "439a8e9d2d67"
     }
   ]
 }

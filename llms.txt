@@ -32,6 +32,12 @@ THE AGENT PATH    python3 grail_layers.py --kernel ~/.brainstem/src/rapp_brainst
   --since 2026-11-03T00:00:00.000Z   every frame since: what changed, who asked, what passed
   --replay                      re-run every tile through the recorded lens; the head must come back identical
   --plain                       safe mode (grail, no parts) for this boot
+  --status also shows the LAST BOOT (what ran, why, anything the owner should hear) and the last chaos drill.
+  A boot that fell back, refused a part, or skipped one writes ~/.brainstem/layers/last-boot.json; the chat agent
+  says it ONCE in the owner's next chat (journald lesson: a boot message nobody reads is not a message).
+CHAOS             python3 chaos.py --kernel <brainstem.py>  breaks a SCRATCH copy on purpose (hand-edited part,
+  missing part, corrupted chain, killed process, no network, clock moved back) and proves the owner still gets a
+  Brainstem and hears why; report at ~/.brainstem/layers/chaos/latest.json. The installer schedules it nightly.
   In chat: drop brainstem_shape_agent.py into agents/ and say "what am I running", "update my brainstem with …",
   "undo", "what changed since Tuesday".
 KINDS             layer = a Python file applied in memory over the unchanged grail (declares PROVEN_GRAIL shas and

@@ -51,6 +51,24 @@ class BrainstemShapeAgent(BasicAgent):
         }
         super().__init__(self.name, self.metadata)
 
+    def system_context(self):
+        """Say a boot notice ONCE, in the owner's next chat, then mark it told. Journald lesson: a boot message
+        nobody reads is not a message; the owner's chat is the one place they already look."""
+        f = LAYERS / "last-boot.json"
+        try:
+            lb = json.loads(f.read_text())
+        except (OSError, ValueError):
+            return None
+        if lb.get("told") or not lb.get("notices"):
+            return None
+        try:
+            lb["told"] = True
+            f.write_text(json.dumps(lb, indent=1))
+        except OSError:
+            pass
+        return ("<brainstem_boot_notice>Before answering, tell the owner this in one plain sentence (once; it has not "
+                "been said yet), then answer their message: " + " ".join(lb["notices"]) + "</brainstem_boot_notice>")
+
     def _run(self, *args, timeout=240):
         sup = Path(os.environ.get("GRAIL_LAYERS_SUPERVISOR") or LAYERS / "grail_layers.py")
         if not sup.is_file():

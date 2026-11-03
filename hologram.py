@@ -35,6 +35,13 @@ def utc_now():
     return time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(t)) + ".%03dZ" % int((t % 1) * 1000)
 
 
+def next_ms(utc):
+    """The millisecond after a rapp/1 utc string (used only when the device clock is behind the chain head)."""
+    import datetime
+    t = datetime.datetime.strptime(utc, "%Y-%m-%dT%H:%M:%S.%fZ") + datetime.timedelta(milliseconds=1)
+    return t.strftime("%Y-%m-%dT%H:%M:%S.") + "%03dZ" % (t.microsecond // 1000)
+
+
 def device_label():
     raw = (os.environ.get("GRAIL_DEVICE") or socket.gethostname().split(".")[0]).lower()
     lab = "".join(c if c.isalnum() else "-" for c in raw).strip("-") or "device"
@@ -75,7 +82,10 @@ class Chain:
 
     def append(self, kind, payload):
         h = self.head
-        f = rapp.build_frame(kind, self.stream_id, (h["seq"] + 1) if h else 0, utc_now(), payload,
+        utc = utc_now()
+        if h and utc <= h["utc"]:  # a clock that went backwards must not freeze the chain: order is position, never the clock
+            utc = next_ms(h["utc"])
+        f = rapp.build_frame(kind, self.stream_id, (h["seq"] + 1) if h else 0, utc, payload,
                              h["payload_hash"] if h else None)
         ok, step, why = rapp.verify_frame(f, head=h)
         if not ok:

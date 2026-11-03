@@ -25,7 +25,7 @@ PY="$BS/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
 
 say "Step 2 of 3: installing layers from RAR"
 mkdir -p "$DEST/layers"
-for f in grail_layers.py hologram.py shape_lens.py rapp.py brainstem_shape_agent.py; do   # supervisor + hologram (rapp/1 chain, the one lens) + chat agent
+for f in grail_layers.py hologram.py shape_lens.py rapp.py brainstem_shape_agent.py chaos.py; do   # supervisor + hologram (rapp/1 chain, the one lens) + chat agent
   curl -fsSL "$SELF/$f" -o "$DEST/$f.new" && mv "$DEST/$f.new" "$DEST/$f"
 done
 # The chat agent goes where every agent goes (userland route 1: agents/ is the user's folder, never the kernel).
@@ -62,7 +62,25 @@ if [ "$(uname)" = "Darwin" ] && [ -f "$PLIST" ] && [ "${GRAIL_LAYERS_NO_LAUNCHD:
     -c "Add :ProgramArguments:4 string --python" -c "Add :ProgramArguments:5 string $PY" "$PLIST"
   launchctl bootout "gui/$(id -u)" "$PLIST" 2>/dev/null || true
   launchctl bootstrap "gui/$(id -u)" "$PLIST"
-  say "Done. Your Brainstem now runs grail + layers; if a layer ever fails it starts plain grail by itself."
+  # Nightly chaos drill (Chaos Monkey lesson: bounded, scheduled, scratch copy only, never the live chain).
+  CHAOS_PLIST="$HOME/Library/LaunchAgents/com.brainstem.chaos.plist"
+  mkdir -p "$DEST/chaos"
+  cat > "$CHAOS_PLIST" <<EOP
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.brainstem.chaos</string>
+  <key>ProgramArguments</key><array>
+    <string>$PY</string><string>$DEST/chaos.py</string><string>--kernel</string><string>$KERNEL</string><string>--python</string><string>$PY</string>
+  </array>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>3</integer><key>Minute</key><integer>30</integer></dict>
+  <key>StandardOutPath</key><string>$DEST/chaos/launchd.log</string>
+  <key>StandardErrorPath</key><string>$DEST/chaos/launchd.log</string>
+</dict></plist>
+EOP
+  launchctl bootout "gui/$(id -u)" "$CHAOS_PLIST" 2>/dev/null || true
+  launchctl bootstrap "gui/$(id -u)" "$CHAOS_PLIST"
+  say "Done. Your Brainstem now runs grail + layers; if a layer ever fails it starts plain grail by itself. A chaos drill runs nightly at 03:30 on a scratch copy."
 else
   say "Done. Start it with: $PY $DEST/grail_layers.py --kernel $KERNEL --python $PY"
 fi

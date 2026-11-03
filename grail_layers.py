@@ -39,6 +39,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 HOME = Path(os.environ.get("GRAIL_LAYERS_HOME") or HERE)   # chain.jsonl, parts/, logs live here
 LOG = HOME / "layers.log"
+SCHEMA_PLAIN = "brainstem-shape/1"
 sys.path.insert(0, str(HERE))
 import hologram  # noqa: E402  (rapp/1 chain + the one lens)
 
@@ -111,6 +112,19 @@ def log(msg):
     HOME.mkdir(parents=True, exist_ok=True)
     with open(LOG, "a") as f:
         f.write(line + "\n")
+
+
+LAST_BOOT = HOME / "last-boot.json"
+
+
+def last_boot(**fields):
+    """What the owner should hear about this boot, written once per boot; the chat agent says it once (told=false->true).
+    Boot messages nobody reads are not messages (journald lesson): this file is the one place the owner's chat looks."""
+    rec = {"utc": hologram.utc_now(), "told": False, **fields}
+    HOME.mkdir(parents=True, exist_ok=True)
+    tmp = LAST_BOOT.with_suffix(".tmp")
+    tmp.write_text(json.dumps(rec, indent=1)); os.replace(tmp, LAST_BOOT)
+    return rec
 
 
 def http(url, body=None, timeout=10):
@@ -209,7 +223,17 @@ def open_chain(kernel):
 
 
 def run_live(a, kernel):
-    chain = open_chain(kernel)
+    notices = []  # plain sentences for the owner; empty = nothing worth saying
+    try:
+        chain = open_chain(kernel)
+    except Exception as e:  # a broken or tampered chain must never leave the owner without a Brainstem
+        log(f"chain refused ({e}); starting plain grail; the chain file is kept untouched for inspection")
+        notices.append("I could not read my own change history, so I started as plain grail with no parts; "
+                       "the history file was left untouched for inspection.")
+        last_boot(what="plain grail", why="chain refused: " + str(e), port=a.port, fallback=True, notices=notices)
+        p = start(kernel, {"schema": SCHEMA_PLAIN, "safe_mode": True, "parts": []}, a.port, a.python, HOME)
+        signal.signal(signal.SIGTERM, lambda *_: (stop(p), sys.exit(0)))
+        sys.exit(p.wait())
     safe = a.plain or os.environ.get("GRAIL_SAFE_MODE") == "1"
     shape, tile_frame = chain.authorised()
     if safe:
@@ -218,9 +242,12 @@ def run_live(a, kernel):
     bad = hologram.check_parts(HOME / "parts", shape) if not shape["safe_mode"] else {}
     if bad:  # boot-time integrity (D365 lesson, hand-edit detection): never run a part whose bytes moved
         log("parts refused: " + "; ".join(f"{k} ({v})" for k, v in bad.items()) + " — starting plain grail")
-        shape = {**shape, "safe_mode": True}
+        notices.append("I started as plain grail because " + "; ".join(f"{k} {v}" for k, v in bad.items())
+                       + ". Say 'undo' or re-add the part to put it back.")
+        shape, tile_frame = {**shape, "safe_mode": True}, None  # a device condition, not the tile's failure: no gate recorded
     if tile_frame and chain.live_failures_since_pass() >= 2:  # flap guard
         log(f"tile #{tile_frame['seq']} failed live twice; falling back to the previous authorised shape")
+        notices.append(f"My latest shape (tile #{tile_frame['seq']}) failed to start twice in a row, so I went back to the one before it.")
         prev = [f for f in chain.frames if f["kind"] == "shape.gate" and f["payload"]["passed"]
                 and f["payload"]["tile"] != tile_frame["frame_hash"]]
         tiles = {f["frame_hash"]: f for f in chain.frames if f["kind"] == "shape.tile"}
@@ -235,12 +262,17 @@ def run_live(a, kernel):
         hologram.gate(chain, tile_frame, "live", ok, evidence(HOME, why))
     if not ok and (shape["parts"] and not shape["safe_mode"]):
         log(f"shape failed live ({why}); falling back to plain grail")
+        notices.append(f"My parts failed to start ({why}), so I am running as plain grail until the next change passes.")
         stop(p)
         shape = {**shape, "safe_mode": True}
         p = start(kernel, shape, a.port, a.python, HOME)
         ok, why = healthy(p, a.port, False)
     what = "plain grail" if (shape["safe_mode"] or not shape["parts"]) else "grail + " + ",".join(x["id"] for x in shape["parts"])
     log(f"running {what} on port {a.port}: {why}")
+    ev = evidence(HOME, why)
+    if ev.get("skipped"):
+        notices.append("Skipped parts this boot: " + "; ".join(f"{k} ({v})" for k, v in ev["skipped"].items()) + ".")
+    last_boot(what=what, why=why, port=a.port, fallback=bool(notices), notices=notices, skipped=ev.get("skipped", {}))
     signal.signal(signal.SIGTERM, lambda *_: (stop(p), sys.exit(0)))
     try:
         sys.exit(p.wait())
@@ -303,7 +335,16 @@ def main():
         venv = Path(kernel).parent.parent.parent / "venv" / "bin" / "python"
         a.python = str(venv) if venv.is_file() else sys.executable
     if a.status:
-        print(hologram.describe(open_chain(kernel), HOME / "parts")); return
+        print(hologram.describe(open_chain(kernel), HOME / "parts"))
+        if LAST_BOOT.is_file():
+            lb = json.loads(LAST_BOOT.read_text())
+            print(f"  last boot {lb['utc']}: {lb['what']} ({lb['why']})" + ("".join("\n  ! " + n for n in lb.get("notices", []))))
+        latest = HOME / "chaos" / "latest.json"
+        if latest.is_file():
+            c = json.loads(latest.read_text())
+            print(f"  last chaos drill {c['finished']}: survived {c['passed']}/{c['total']}"
+                  + "".join(f"\n  ! did not survive: {r['scenario']}" for r in c["results"] if not r["passed"]))
+        return
     if a.replay:
         ok, why = hologram.replay(open_chain(kernel)); print(("replay ok: " if ok else "REPLAY FAILED: ") + why); sys.exit(0 if ok else 1)
     if a.since:
