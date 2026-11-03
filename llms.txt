@@ -1,0 +1,10 @@
+# grail-layers
+
+> Every grail (Brainstem kernel) update ships as a layer over the unchanged grail; if a layer fails, plain grail runs.
+
+- [Install (grail, then layers)](https://kody-w.github.io/grail-layers/install.sh): `curl -fsSL https://kody-w.github.io/grail-layers/install.sh | bash`
+- [Uninstall (plain grail)](https://kody-w.github.io/grail-layers/uninstall.sh)
+- [Supervisor](https://kody-w.github.io/grail-layers/grail_layers.py)
+- [The pattern and the layer contract](https://kody-w.github.io/grail-layers/README.md)
+- [Layer files in RAR](https://kody-w.github.io/RAR/stacks/grail-layers/pack.json)
+- [Registry](https://kody-w.github.io/grail-layers/registry.json)

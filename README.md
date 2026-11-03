@@ -1,0 +1,65 @@
+# grail-layers: how every grail update ships
+
+**The rule (Kody, 2026-11-03): the grail stays the base. Every update is a layer over it, and if a
+layer breaks, people still have grail.** This repo is separate from the grail repo
+(`kody-w/rapp-installer`) and never edits it. The two work together at run time.
+
+```bash
+curl -fsSL https://kody-w.github.io/grail-layers/install.sh | bash     # grail, then layers over it
+curl -fsSL https://kody-w.github.io/grail-layers/uninstall.sh | bash   # back to plain grail
+```
+
+## How it works
+
+1. **The grail installs itself, unchanged.** The one-liner runs the grail's own one-liner first.
+2. **Layers come from RAR, checked.** Layer files are published in RAR at `stacks/grail-layers/`
+   (https://kody-w.github.io/RAR/stacks/grail-layers/pack.json). Every file is checked against its sha256
+   before it is saved.
+3. **Applied in memory, never on disk.** `grail_layers.py` starts the Brainstem by applying each layer
+   inside the process, then running the untouched `brainstem.py`. The grail file is byte-identical to
+   what the grail installer wrote.
+4. **Three safety nets:**
+   - a layer that throws while applying is skipped;
+   - every hook inside a layer falls back to the grail's own call on any error;
+   - the supervisor sends one real `/chat` probe, and if it fails, it restarts plain grail on the
+     same port and writes why to `~/.brainstem/layers/layers.log`.
+5. **One-step undo.** The installer keeps the grail's own launchd job as the restore point, and
+   `uninstall.sh` puts it back exactly.
+
+Who did this before: Linux livepatch and kpatch (patch a running kernel in memory; the image on disk
+never changes), Fedora Silverblue/ostree (immutable base plus layered packages, rollback in one
+step), and ChromeOS A/B updates (a bad update boots back into the known-good slot).
+
+## The layer contract (`grail-layer/1`)
+
+A layer is one Python file in RAR `stacks/grail-layers/`, with one function:
+
+```python
+def apply():
+    """Called once, before the grail runs, inside the Brainstem process."""
+```
+
+Rules:
+- **Wrap, never replace.** Hold a reference to the original call and fall back to it on any exception.
+- **Additive only.** Old requests behave exactly as before. A layer may add capability, never remove it.
+- **No files written into the grail's folders.** Layer state lives under `~/.brainstem/layers/`.
+- **A layer serves every user, or it is an agent.** Use-case features are agents in `agents/`, not layers.
+- **Removable.** Deleting its name from `~/.brainstem/layers/enabled` turns it off at the next start.
+- **Proven before publishing.** Grail+layer answers a real `/chat`, and a deliberately broken copy
+  falls back to plain grail.
+
+## Shipping a new grail update (the only path from now on)
+
+1. Write the layer, and test it over a lab copy of the grail: `python3 grail_layers.py --kernel <lab>/brainstem.py --port <free>`.
+2. Prove both: a real `/chat` through the layer, and a broken copy falling back to plain grail.
+3. Publish the file in RAR `stacks/grail-layers/` and update `pack.json` (sha256, `default_enabled`).
+4. Users get it the next time they run the one-liner, or through any distro that runs it.
+5. Only if a layer has proven itself for every user, and the kernel truly cannot work without it,
+   does Kody open a grail release window to fold it in. That's Linux's "out-of-tree first,
+   upstream when proven".
+
+## Layers today
+
+| Layer | Adds | Proven |
+|---|---|---|
+| `responses_models` | Responses-API-only models (gpt-6.1-sol, gpt-6-luna and others) in the unchanged grail | Model list went from 21 to 35; a gpt-6.1-sol chat called an agent through it; a broken layer fell back to plain grail (1 of 1) |
