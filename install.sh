@@ -25,9 +25,12 @@ PY="$BS/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
 
 say "Step 2 of 3: installing layers from RAR"
 mkdir -p "$DEST/layers"
-for f in grail_layers.py hologram.py shape_lens.py rapp.py; do   # the supervisor + the hologram (rapp/1 chain, the one lens)
+for f in grail_layers.py hologram.py shape_lens.py rapp.py brainstem_shape_agent.py; do   # supervisor + hologram (rapp/1 chain, the one lens) + chat agent
   curl -fsSL "$SELF/$f" -o "$DEST/$f.new" && mv "$DEST/$f.new" "$DEST/$f"
 done
+# The chat agent goes where every agent goes (userland route 1: agents/ is the user's folder, never the kernel).
+AGENTS_DIR="${AGENTS_PATH:-$(dirname "$KERNEL")/agents}"
+[ -d "$AGENTS_DIR" ] && cp "$DEST/brainstem_shape_agent.py" "$AGENTS_DIR/brainstem_shape_agent.py" && echo "chat agent installed: say 'what am I running' to your Brainstem"
 curl -fsSL "$RAR/pack.json" -o "$DEST/pack.json"
 "$PY" - "$DEST" "$RAR" <<'PY'
 import hashlib, json, sys, urllib.request, pathlib

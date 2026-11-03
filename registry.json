@@ -1,7 +1,7 @@
 {
   "schema": "grail-layers-registry/1.0",
   "spec": "rapp-static-api/1.1",
-  "generated": "2026-11-03T19:34:21Z",
+  "generated": "2026-11-03T19:37:14Z",
   "pages": "https://kody-w.github.io/grail-layers/",
   "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/",
   "summary": {
@@ -11,10 +11,10 @@
   "entries": [
     {
       "name": "install.sh",
-      "sha256": "423ebd30f3c3d4f6db89df1ec793357ab8a8c0f97e382de756e6d74eb681eec2",
+      "sha256": "e45a504f301d0877b02880cf222bff66a0b5607e18f1be8c38d461b622cbc01f",
       "url": "https://kody-w.github.io/grail-layers/install.sh",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/install.sh",
-      "sha8": "423ebd30f3c3"
+      "sha8": "e45a504f301d"
     },
     {
       "name": "uninstall.sh",
