@@ -42,6 +42,17 @@ CHAOS             python3 chaos.py --kernel <brainstem.py>  breaks a SCRATCH cop
   "undo", "what changed since Tuesday".
   A pack may list parts it does NOT seed (install.seed names the seeded ones): e.g. @kody-w/lispy_brainstem, the
   LisPy kernel as one file; say "update my brainstem with @kody-w/lispy_brainstem" to try it (lab first, undo any time).
+SUCCESSION        Whose Brainstem this is and who inherits it (rapp-succession/1, three signed frame kinds in the same
+  chain: succession.name / pulse / handoff; Ed25519 detached JWS per rapp/1 §10). In chat: "if something happens
+  to me, Jane gets this" names a successor (a key pair is minted for Jane under ~/.brainstem/layers/keys/, mode 600;
+  the owner hands her the private file out of band; only PUBLIC keys ever enter the chain); "who gets this if I'm
+  gone"; "hand it over to Jane now". Silence window (default 30 days) + confirm window (7): after it, Jane's own
+  signed hand-off makes her the owner; before it, refused. The chain is its own key directory (no registry on a
+  device). The stream id never changes: the chain is the asset. The AI never holds a private key.
+  CLI: --who | --mint-key NAME | --name-successor NAME --successor-pub <key>.pub.json [--silence-days 30
+  --confirm-days 7] | --pulse | --handoff | --handoff-as-successor <priv.pem> [--at utc]. Owner key:
+  $GRAIL_OWNER_KEY or ~/.brainstem/layers/keys/owner.pem (minted on first use; keep a copy somewhere safe).
+  Rehearsed nightly: succession_drill.py (scratch chain, throwaway keys, the heir's Brainstem boots and answers).
 KINDS             layer = a Python file applied in memory over the unchanged grail (declares PROVEN_GRAIL shas and
   TOUCHES hook points; unproven or clashing layers are skipped and said so). kernel = a whole Brainstem that
   replaces brainstem.py (e.g. the LisPy kernel, examples/brainstem-kernel in kody-w/lisppy); it gets the user's

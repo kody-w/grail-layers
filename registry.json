@@ -1,41 +1,41 @@
 {
   "schema": "grail-layers-registry/1.0",
   "spec": "rapp-static-api/1.1",
-  "generated": "2026-11-03T20:43:24Z",
+  "generated": "2026-11-03T21:10:56Z",
   "pages": "https://kody-w.github.io/grail-layers/",
   "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/",
   "summary": {
-    "files": 10,
+    "files": 12,
     "layers_source": "https://kody-w.github.io/RAR/stacks/grail-layers/pack.json"
   },
   "entries": [
     {
       "name": "install.sh",
-      "sha256": "1f4c23e4d991c4484cade501ba80ca5204431ceec0efd4777dce49643c4a0365",
+      "sha256": "ee9ff71531926d334c113982708ec19a21641f829d75c4cc0305a4cf015e6f3e",
       "url": "https://kody-w.github.io/grail-layers/install.sh",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/install.sh",
-      "sha8": "1f4c23e4d991"
+      "sha8": "ee9ff7153192"
     },
     {
       "name": "uninstall.sh",
-      "sha256": "5607601226f464f46a50539ef6a5967edeb072d1824925ddd637845b8f8c3833",
+      "sha256": "f552e43b7d0526106322e4f065c922b5483dd1878876053cd50a9b905bdc7fd2",
       "url": "https://kody-w.github.io/grail-layers/uninstall.sh",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/uninstall.sh",
-      "sha8": "5607601226f4"
+      "sha8": "f552e43b7d05"
     },
     {
       "name": "grail_layers.py",
-      "sha256": "3a66773369a661424367229df9afc63ea7cda7744b3d8f2475de49d821e3b723",
+      "sha256": "dc176ffdf9d274dff662b0ffc7bee7053701a7d02aa919b8bae1efd2838b611a",
       "url": "https://kody-w.github.io/grail-layers/grail_layers.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/grail_layers.py",
-      "sha8": "3a66773369a6"
+      "sha8": "dc176ffdf9d2"
     },
     {
       "name": "hologram.py",
-      "sha256": "74d16f5ba2ab9121345707675bfd3fed5954f2c9e3f8b1889527191f76f7fedb",
+      "sha256": "5fe43d1f9b3f968ac26e705100091a4c823714132f1b30a0adcdf870e4cf3314",
       "url": "https://kody-w.github.io/grail-layers/hologram.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/hologram.py",
-      "sha8": "74d16f5ba2ab"
+      "sha8": "5fe43d1f9b3f"
     },
     {
       "name": "shape_lens.py",
@@ -53,10 +53,10 @@
     },
     {
       "name": "brainstem_shape_agent.py",
-      "sha256": "c8820c4251068b32105e45f72a405c8692914a0459d1a77bbeea9408f135cf9a",
+      "sha256": "b98576d6bc20f55e4a4f4c809b2d92972a8c3351f54107780fdd039b6bc5508d",
       "url": "https://kody-w.github.io/grail-layers/brainstem_shape_agent.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/brainstem_shape_agent.py",
-      "sha8": "c8820c425106"
+      "sha8": "b98576d6bc20"
     },
     {
       "name": "chaos.py",
@@ -64,6 +64,20 @@
       "url": "https://kody-w.github.io/grail-layers/chaos.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/chaos.py",
       "sha8": "f7986c0a5334"
+    },
+    {
+      "name": "succession.py",
+      "sha256": "140b0d5ed394a31bc2a74c3dbcbc53b8f4b26224b9d22d5b2bef9f810396c074",
+      "url": "https://kody-w.github.io/grail-layers/succession.py",
+      "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/succession.py",
+      "sha8": "140b0d5ed394"
+    },
+    {
+      "name": "succession_drill.py",
+      "sha256": "7932bed7e907411216b9b8e9ed764344ceb732628eb4f075e31c32bead5b8657",
+      "url": "https://kody-w.github.io/grail-layers/succession_drill.py",
+      "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/succession_drill.py",
+      "sha8": "7932bed7e907"
     },
     {
       "name": "README.md",
@@ -74,10 +88,10 @@
     },
     {
       "name": "llms.txt",
-      "sha256": "7af8a8db95a92344583a5a1ff9ecd59d791da9aafbc4619fd82bc844691c5484",
+      "sha256": "321e765dc4eebb1dba3edba0fd0ec97e28e9503c02156c888f9abd54b62df172",
       "url": "https://kody-w.github.io/grail-layers/llms.txt",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/llms.txt",
-      "sha8": "7af8a8db95a9"
+      "sha8": "321e765dc4ee"
     }
   ]
 }

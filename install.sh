@@ -25,7 +25,7 @@ PY="$BS/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
 
 say "Step 2 of 3: installing layers from RAR"
 mkdir -p "$DEST/parts"
-for f in grail_layers.py hologram.py shape_lens.py rapp.py brainstem_shape_agent.py chaos.py; do   # supervisor + hologram (rapp/1 chain, the one lens) + chat agent
+for f in grail_layers.py hologram.py shape_lens.py rapp.py brainstem_shape_agent.py chaos.py succession.py succession_drill.py; do   # supervisor + hologram (rapp/1 chain, the one lens) + chat agent
   curl -fsSL "$SELF/$f" -o "$DEST/$f.new" && mv "$DEST/$f.new" "$DEST/$f"
 done
 # The chat agent goes where every agent goes (userland route 1: agents/ is the user's folder, never the kernel).
@@ -94,7 +94,14 @@ if [ "$(uname)" = "Darwin" ] && [ -f "$PLIST" ] && [ "${GRAIL_LAYERS_NO_LAUNCHD:
 EOP
   launchctl bootout "gui/$(id -u)" "$CHAOS_PLIST" 2>/dev/null || true
   launchctl bootstrap "gui/$(id -u)" "$CHAOS_PLIST"
-  say "Done. Your Brainstem now runs grail + layers; if a layer ever fails it starts plain grail by itself. A chaos drill runs nightly at 03:30 on a scratch copy."
+  # Nightly succession rehearsal: the heir's Brainstem boots from a scratch chain with throwaway keys.
+  SUCC_PLIST="$HOME/Library/LaunchAgents/com.brainstem.succession.plist"
+  mkdir -p "$DEST/succession"
+  sed -e 's/com.brainstem.chaos/com.brainstem.succession/' -e "s|$DEST/chaos.py|$DEST/succession_drill.py|" \
+      -e 's|<integer>30</integer>|<integer>50</integer>|' -e "s|$DEST/chaos/launchd.log|$DEST/succession/launchd.log|g" "$CHAOS_PLIST" > "$SUCC_PLIST"
+  launchctl bootout "gui/$(id -u)" "$SUCC_PLIST" 2>/dev/null || true
+  launchctl bootstrap "gui/$(id -u)" "$SUCC_PLIST"
+  say "Done. Your Brainstem now runs grail + layers; if a layer ever fails it starts plain grail by itself. A chaos drill runs nightly at 03:30 and a succession rehearsal at 03:50, both on scratch copies."
 else
   say "Done. Start it with: $PY $DEST/grail_layers.py --kernel $KERNEL --python $PY"
 fi

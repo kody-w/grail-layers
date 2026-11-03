@@ -10,6 +10,10 @@ every change in a lab before anything goes live. Plain words in, plain words out
   "undo" / "put it back"         -> undo    (Time Machine: previous authorised shape, gated again)
   "what changed since Tuesday"   -> since   (receipts: who asked, what passed)
   "check the history"            -> replay
+  "who gets this if I'm gone"    -> who_inherits
+  "if something happens to me, Jane gets this" -> name_successor (mints Jane's key pair; the owner hands her the
+                                    private file out of band; only public keys ever enter the chain)
+  "hand it over to Jane now"     -> handoff
 """
 import json
 import os
@@ -32,19 +36,25 @@ class BrainstemShapeAgent(BasicAgent):
                 "Change or inspect what this Brainstem is made of: what am I running (status), update my "
                 "brainstem with a published part (add), remove a part, safe mode, undo (put it back the way it "
                 "was), what changed since a time, or check the history (replay). Every change is tried in a lab "
-                "first and recorded; nothing goes live until it passes."
+                "first and recorded; nothing goes live until it passes. Also succession: who owns this Brainstem and "
+                "who inherits it (who_inherits), name who gets it if the owner is gone (name_successor, with the "
+                "person's name; a key pair is minted for them), or hand it over now (handoff)."
             ),
             "parameters": {
                 "type": "object",
                 "properties": {
                     "action": {"type": "string",
-                               "enum": ["status", "add", "remove", "safe_mode", "undo", "since", "replay"]},
+                               "enum": ["status", "add", "remove", "safe_mode", "undo", "since", "replay",
+                                        "who_inherits", "name_successor", "handoff"]},
                     "part": {"type": "object",
                              "description": "for add: {id '@publisher/name', kind 'layer'|'kernel', point, file, sha256, locator https url}"},
                     "id": {"type": "string", "description": "for remove: the part id"},
                     "on": {"type": "boolean", "description": "for safe_mode"},
                     "since": {"type": "string", "description": "for since: UTC like 2026-11-03T00:00:00.000Z"},
                     "by": {"type": "string", "description": "who asked (the owner's name), recorded on the tile"},
+                    "successor": {"type": "string", "description": "for name_successor: the person's name"},
+                    "silence_days": {"type": "integer", "description": "for name_successor: days of silence before the hand-off opens (default 30)"},
+                    "confirm_days": {"type": "integer", "description": "for name_successor: extra days to confirm (default 7)"},
                 },
                 "required": ["action"],
             },
@@ -78,7 +88,42 @@ class BrainstemShapeAgent(BasicAgent):
                            capture_output=True, text=True, timeout=timeout, env=env)
         return r.returncode, (r.stdout or r.stderr).strip()
 
-    def perform(self, action="status", part=None, id=None, on=None, since=None, by=None, **_):
+    def perform(self, action="status", part=None, id=None, on=None, since=None, by=None,
+                successor=None, silence_days=None, confirm_days=None, **_):
+        if action == "who_inherits":
+            code, out = self._run("--who")
+            return out
+        if action == "name_successor":
+            if not successor:
+                return "Tell me the person's name, e.g. 'if something happens to me, Jane gets this'."
+            code, out = self._run("--mint-key", successor)
+            if code:
+                return out
+            try:
+                rec = json.loads(out.splitlines()[-1])
+            except (ValueError, IndexError):
+                return out
+            args = ["--name-successor", successor, "--successor-pub", rec["public_record"]]
+            if silence_days:
+                args += ["--silence-days", str(silence_days)]
+            if confirm_days is not None:
+                args += ["--confirm-days", str(confirm_days)]
+            code, out = self._run(*args)
+            try:
+                d = json.loads(out.splitlines()[-1])
+            except (ValueError, IndexError):
+                return out
+            if not d.get("ok"):
+                return f"Not recorded. {d.get('refused')}"
+            return (f"Recorded in frame #{d['frame']}: {d['says']} {successor}'s private key is at {rec['private_key']}; "
+                    f"give that file to {successor} out of band and keep your own owner key safe. Only public keys are in the chain.")
+        if action == "handoff":
+            code, out = self._run("--handoff")
+            try:
+                d = json.loads(out.splitlines()[-1])
+            except (ValueError, IndexError):
+                return out
+            return (f"Handed over in frame #{d['frame']}: {d['says']}" if d.get("ok") else f"Not handed over. {d.get('refused')}")
         if action == "status":
             code, out = self._run("--status")
             return out

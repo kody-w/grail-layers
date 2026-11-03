@@ -42,6 +42,7 @@ LOG = HOME / "layers.log"
 SCHEMA_PLAIN = "brainstem-shape/1"
 sys.path.insert(0, str(HERE))
 import hologram  # noqa: E402  (rapp/1 chain + the one lens)
+import succession  # noqa: E402  (whose Brainstem this is, who inherits)
 
 
 def apply_layers(kernel_bytes, layers_dir, names, report_dir=None):
@@ -248,6 +249,14 @@ def run_live(a, kernel):
         sys.exit(p.wait())
     safe = a.plain or os.environ.get("GRAIL_SAFE_MODE") == "1"
     shape, tile_frame = chain.authorised()
+    try:
+        sx = succession.state(chain.frames)
+        if sx["status"] == "refused":
+            log("succession record refused: " + sx["why"]); notices.append("My ownership record has a problem: " + sx["why"])
+        elif sx["status"] in ("silent", "handoff-open"):
+            notices.append(succession.describe(sx))
+    except SystemExit as e:  # no cryptography in this interpreter: say so once, keep booting
+        log(f"succession not checked: {e}")
     if safe:
         shape = {**shape, "safe_mode": True}
         log("safe mode: starting plain grail, no parts")
@@ -323,6 +332,56 @@ def run_apply(a, kernel):
     return 0 if ok else 1
 
 
+def _owner(a):
+    """The owner's key record; minted on first use (the private key stays in the file, mode 600)."""
+    priv = Path(a.owner_key).expanduser()
+    slug = "".join(c if c.isalnum() else "-" for c in a.owner_name.lower()).strip("-")[:39] or "owner"
+    if not priv.is_file():
+        rec = succession.mint_key(priv, slug, "owner", a.owner_name)
+        log(f"minted the owner key at {priv} (keep a copy somewhere safe; it is the only one)")
+    else:
+        rec = succession.load_public_record(str(priv) + ".pub.json")
+    return priv, rec
+
+
+def run_succession(a, kernel):
+    chain = open_chain(kernel)
+    if a.mint_key:
+        label = "".join(c if c.isalnum() else "-" for c in a.mint_key.lower()).strip("-")[:39]
+        path = HOME / "keys" / f"{label}.pem"
+        rec = succession.mint_key(path, label, "successor", a.mint_key)
+        print(json.dumps({"ok": True, "private_key": str(path), "public_record": str(path) + ".pub.json",
+                          "rappid": rec["rappid"], "next": f"give the private key to {a.mint_key} out of band; only the public record enters the chain"}))
+        return 0
+    if a.who:
+        st = succession.state(chain.frames)
+        print(succession.describe(st)); return 0 if st["status"] != "refused" else 1
+    try:
+        if a.name_successor:
+            if not a.successor_pub:
+                print(json.dumps({"ok": False, "refused": "I need the successor's public record (--successor-pub <key>.pub.json); mint one with --mint-key NAME"})); return 2
+            priv, rec = _owner(a)
+            succ = succession.load_public_record(a.successor_pub); succ["name"] = a.name_successor
+            rec = {"name": a.owner_name, **{k: rec[k] for k in ("rappid", "spki_der_b64")}}
+            f = succession.name_successor(chain, priv, rec, succ, {"silence_days": a.silence_days, "confirm_days": a.confirm_days})
+            log(f"named successor {a.name_successor} in frame #{f['seq']}")
+        elif a.pulse:
+            priv, rec = _owner(a); f = succession.pulse(chain, priv, rec)
+        elif a.handoff:
+            priv, rec = _owner(a); f = succession.handoff(chain, priv, rec, "owner")
+            log(f"owner handed over in frame #{f['seq']}")
+        else:
+            priv = Path(a.handoff_as_successor).expanduser()
+            rec = succession.load_public_record(str(priv) + ".pub.json")
+            f = succession.handoff(chain, priv, rec, "silence", at=a.at)
+            log(f"successor {rec['name']} took over in frame #{f['seq']}")
+    except (ValueError, FileNotFoundError, PermissionError) as e:
+        print(json.dumps({"ok": False, "refused": str(e)})); return 2
+    st = succession.state(chain.frames)
+    print(json.dumps({"ok": st["status"] != "refused", "frame": f["seq"], "status": st["status"], "says": succession.describe(st)}))
+    return 0 if st["status"] != "refused" else 1
+
+
 def main():
     if len(sys.argv) > 1 and sys.argv[1] == "--boot":  # child process: --boot <kernel> <layers_dir> <names-or-paths>
         boot(sys.argv[2], sys.argv[3], [n for n in sys.argv[4].split(",") if n])
@@ -340,13 +399,31 @@ def main():
     ap.add_argument("--replay", action="store_true")
     ap.add_argument("--since", help="UTC like 2026-11-03T00:00:00.000Z: frames since then")
     ap.add_argument("--undo", action="store_true", help="tile back to the previously authorised shape (then gate it)")
+    sx = ap.add_argument_group("succession (whose Brainstem this is, who inherits; keys stay in files you control)")
+    sx.add_argument("--owner-key", default=os.environ.get("GRAIL_OWNER_KEY") or str(HOME / "keys" / "owner.pem"),
+                    help="the owner's private Ed25519 PEM (minted on first use; mode 600; never leaves this machine)")
+    sx.add_argument("--owner-name", default=os.environ.get("GRAIL_OWNER_NAME") or os.environ.get("USER", "owner"))
+    sx.add_argument("--mint-key", metavar="LABEL", help="mint a key pair for LABEL under keys/ (e.g. a successor); prints the public record path")
+    sx.add_argument("--name-successor", metavar="NAME", help="name who inherits (with --successor-pub)")
+    sx.add_argument("--successor-pub", metavar="PUB_JSON", help="the successor's public record (<key>.pub.json)")
+    sx.add_argument("--silence-days", type=int, default=30)
+    sx.add_argument("--confirm-days", type=int, default=7)
+    sx.add_argument("--pulse", action="store_true", help="sign a sign-of-life frame as the owner")
+    sx.add_argument("--handoff", action="store_true", help="hand over to the named successor now, signed by the owner")
+    sx.add_argument("--handoff-as-successor", metavar="PRIV_PEM", help="the successor takes over after the window, signing with their key")
+    sx.add_argument("--at", help="UTC the successor claims the window closed (default now)")
+    sx.add_argument("--who", action="store_true", help="who owns this Brainstem and who inherits, in plain words")
     a = ap.parse_args()
     kernel = str(Path(a.kernel).expanduser().resolve())
     if not a.python:  # the grail's own venv (~/.brainstem/venv) is where its dependencies live
         venv = Path(kernel).parent.parent.parent / "venv" / "bin" / "python"
         a.python = str(venv) if venv.is_file() else sys.executable
+    if a.mint_key or a.name_successor or a.pulse or a.handoff or a.handoff_as_successor or a.who:
+        sys.exit(run_succession(a, kernel))
     if a.status:
-        print(hologram.describe(open_chain(kernel), HOME / "parts"))
+        chain = open_chain(kernel)
+        print(hologram.describe(chain, HOME / "parts"))
+        print("  " + succession.describe(succession.state(chain.frames)))
         if LAST_BOOT.is_file():
             lb = json.loads(LAST_BOOT.read_text())
             print(f"  last boot {lb['utc']}: {lb['what']} ({lb['why']})" + ("".join("\n  ! " + n for n in lb.get("notices", []))))
@@ -361,7 +438,8 @@ def main():
     if a.since:
         for f in open_chain(kernel).since(a.since):
             print(f"#{f['seq']} {f['utc']} {f['kind']} " + (json.dumps(f['payload'].get('params')) if f['kind'] == 'shape.tile'
-                  else ("PASSED" if f['payload'].get('passed') else "failed") + f" ({f['payload'].get('gate')})" if f['kind'] == 'shape.gate' else "genesis"))
+                  else ("PASSED" if f['payload'].get('passed') else "failed") + f" ({f['payload'].get('gate')})" if f['kind'] == 'shape.gate'
+                  else (f['payload'].get('reason') or f['payload'].get('successor', {}).get('name') or '') if f['kind'].startswith('succession.') else "genesis"))
         return
     if a.undo:
         chain = open_chain(kernel)

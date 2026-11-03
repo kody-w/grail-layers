@@ -10,6 +10,9 @@ if [ -f "$DEST/com.brainstem.server.plist.grail" ] && [ "${GRAIL_LAYERS_NO_LAUNC
   CHAOS_PLIST="$HOME/Library/LaunchAgents/com.brainstem.chaos.plist"
   launchctl bootout "gui/$(id -u)" "$CHAOS_PLIST" 2>/dev/null || true
   rm -f "$CHAOS_PLIST"  # owner-checked: the chaos drill job this installer created
+  SUCC_PLIST="$HOME/Library/LaunchAgents/com.brainstem.succession.plist"
+  launchctl bootout "gui/$(id -u)" "$SUCC_PLIST" 2>/dev/null || true
+  rm -f "$SUCC_PLIST"  # owner-checked: the succession rehearsal job this installer created
 fi
 mv "$DEST" "$BS/layers.removed-$(date +%Y%m%d-%H%M%S)"
 echo "Plain grail restored. The removed layers are kept beside it in case you want them back."

@@ -58,19 +58,46 @@ class Chain:
     def __init__(self, path):
         self.path = Path(path)
         self.frames = []
+        self.keys = {}  # rappid -> spki_der_b64, every public key the chain itself has recorded (succession.name)
         if self.path.is_file():
             head = None
             for n, line in enumerate(self.path.read_text().splitlines(), 1):
                 if not line.strip():
                     continue
                 f = json.loads(line)
-                ok, step, why = rapp.verify_frame(f, head=head)
+                ok, step, why = rapp.verify_frame(f, head=head, signature_verifier=self._verifier(f))
                 if not ok:
                     raise ValueError(f"{self.path} line {n}: frame refused at step {step}: {why}")
                 self.frames.append(f)
+                self._harvest_keys(f)
                 head = f
         if len(self.frames) > WARN_FRAMES:
             print(f"[hologram] chain holds {len(self.frames)} frames; consider a checkpoint", flush=True)
+
+    # ---- signatures: the chain is its own key directory (device-local root; no registry on a device) ----
+    def _harvest_keys(self, f):
+        if f["kind"].startswith("succession."):
+            for role in ("owner", "successor"):
+                rec = f["payload"].get(role)
+                if isinstance(rec, dict) and isinstance(rec.get("rappid"), str) and isinstance(rec.get("spki_der_b64"), str):
+                    self.keys.setdefault(rec["rappid"], rec["spki_der_b64"])
+
+    def _verifier(self, f):
+        """Checks a §10 signature against a key THIS chain recorded (or the key a first naming carries for itself).
+        Who may sign what (owner vs successor, the window) is the profile's rule, checked by succession.validate."""
+        def verify(unsigned, sig):
+            import base64
+            header, _, _ = rapp.parse_detached_jws(sig)
+            kid = header["kid"]
+            spki = self.keys.get(kid)
+            if spki is None and f["kind"] == "succession.name":
+                own = f["payload"].get("owner") or {}
+                if own.get("rappid") == kid:
+                    spki = own.get("spki_der_b64")
+            if spki is None:
+                return False, "signed by a key this chain has never recorded"
+            return rapp.verify_detached_jws(unsigned, sig, base64.b64decode(spki), expected_kid=kid)
+        return verify
 
     @property
     def head(self):
@@ -80,19 +107,25 @@ class Chain:
     def stream_id(self):
         return self.frames[0]["stream_id"] if self.frames else None
 
-    def append(self, kind, payload):
+    def append(self, kind, payload, signer=None, utc=None):
+        """Append one frame. `signer(frame_without_sig) -> detached JWS` signs it (§10: the signature covers the
+        ten other keys, so it is added after the hashes and before verification). `utc` may be given for a
+        frame that must carry a stated time (a hand-off's `at`); it is never allowed to precede the head."""
         h = self.head
-        utc = utc_now()
+        utc = utc or utc_now()
         if h and utc <= h["utc"]:  # a clock that went backwards must not freeze the chain: order is position, never the clock
             utc = next_ms(h["utc"])
         f = rapp.build_frame(kind, self.stream_id, (h["seq"] + 1) if h else 0, utc, payload,
                              h["payload_hash"] if h else None)
-        ok, step, why = rapp.verify_frame(f, head=h)
+        if signer:
+            f["sig"] = signer(f)
+        ok, step, why = rapp.verify_frame(f, head=h, signature_verifier=self._verifier(f))
         if not ok:
             raise ValueError(f"refusing to append: step {step}: {why}")
         with open(self.path, "a") as fh:
             fh.write(rapp.canonical(f) + "\n")
         self.frames.append(f)
+        self._harvest_keys(f)
         return f
 
     # ---- reading the present ----
