@@ -112,3 +112,4 @@ Rules:
 | Layer | Adds | Proven |
 |---|---|---|
 | `responses_models` | Responses-API-only models (gpt-6.1-sol, gpt-6-luna and others) in the unchanged grail | Proven on grail 0.6.16 (public) and 0.6.17: model list 21 → 35; a gpt-6.1-sol chat called an agent through it on both; a broken layer fell back to plain grail; an unproven grail copy skipped the layer and ran plain (each 1 of 1) |
+| `journal_tap` | Every chat turn (plain and streamed) is recorded in the owner's Brainstem Journal on this device, by default; the chat page keeps talking to :7071. Pause with a file (the JournalRecall agent toggles it in chat). No journal running: one line in the log, nothing else | Proven on grail 0.6.16 and 0.6.17 on lab ports: 2 of 2 turns recorded on each (one `/chat`, one `/chat/stream`), replies byte-identical to the kernel's, a paused store recorded 0 of 1, a missing journal left 2 of 2 answers untouched |
