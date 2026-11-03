@@ -1,1 +1,5 @@
 2026-11-03 12:34:26 running grail + responses_models on port 7196: health ok (probe skipped); grail 35618683ebc3; skipped: clash_demo (conflict on requests.post)
+2026-11-03 12:42:46 running grail + responses_models on port 60762: health ok (probe skipped); grail bd55a7f0bcf5
+2026-11-03 12:43:11 safe mode: starting plain grail, no layers
+2026-11-03 12:43:13 running plain grail on port 61086: health ok (probe skipped)
+2026-11-03 12:49:05 running grail + responses_models on port 63963: health ok (probe skipped); grail bd55a7f0bcf5

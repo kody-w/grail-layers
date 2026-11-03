@@ -1,7 +1,7 @@
 {
   "schema": "grail-layers-registry/1.0",
   "spec": "rapp-static-api/1.1",
-  "generated": "2026-11-03T19:17:55Z",
+  "generated": "2026-11-03T19:34:21Z",
   "pages": "https://kody-w.github.io/grail-layers/",
   "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/",
   "summary": {
@@ -25,24 +25,24 @@
     },
     {
       "name": "grail_layers.py",
-      "sha256": "c16946c031981859e6be2aae0662a442ef57301ba099660c5bb8131a7ffe83b0",
+      "sha256": "f13ea5dc938e53a6d649f754e4d37817655d4d97460eabfd078d31f425b5dd1d",
       "url": "https://kody-w.github.io/grail-layers/grail_layers.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/grail_layers.py",
-      "sha8": "c16946c03198"
+      "sha8": "f13ea5dc938e"
     },
     {
       "name": "hologram.py",
-      "sha256": "a098f9c579c53136d0767166af762ed3139b495bea3e30dc9337ae4699b67d16",
+      "sha256": "1b58e6b10deb5988dd62f699c8ec501ea72e554880d37200587ef6ae4a47fb69",
       "url": "https://kody-w.github.io/grail-layers/hologram.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/hologram.py",
-      "sha8": "a098f9c579c5"
+      "sha8": "1b58e6b10deb"
     },
     {
       "name": "shape_lens.py",
-      "sha256": "91279ca0cc6f7bab461f96f8123046d3952e292d9cc7611c409d2d0d325a3a22",
+      "sha256": "e404727c61a9d3e2afeeb4967a7283ecdcacc8ece36d5f23cb15a48b10ac8160",
       "url": "https://kody-w.github.io/grail-layers/shape_lens.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/shape_lens.py",
-      "sha8": "91279ca0cc6f"
+      "sha8": "e404727c61a9"
     },
     {
       "name": "rapp.py",
@@ -53,24 +53,24 @@
     },
     {
       "name": "brainstem_shape_agent.py",
-      "sha256": "d1043dae662326f8764d4481920c0868ee3dbca2dbddf569aa8340262da01203",
+      "sha256": "3f8a50785f0f2f6b4ae8a5e3e7a84ba2536aee089e415eac68b5fb699fc3dcf7",
       "url": "https://kody-w.github.io/grail-layers/brainstem_shape_agent.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/brainstem_shape_agent.py",
-      "sha8": "d1043dae6623"
+      "sha8": "3f8a50785f0f"
     },
     {
       "name": "README.md",
-      "sha256": "33a9a734bbf2d23dcee21a9c922a00b6f61cb8b7b4ef14fa7b15b86933ae6945",
+      "sha256": "760b1c6f1f3465aead82418b9659f42c510ea760ae54deb6d66cd73d7f0a3be9",
       "url": "https://kody-w.github.io/grail-layers/README.md",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/README.md",
-      "sha8": "33a9a734bbf2"
+      "sha8": "760b1c6f1f34"
     },
     {
       "name": "llms.txt",
-      "sha256": "b844d2738954ef384f6d8d7a3db06f9feff67b803e0a5aec5053984b79ae4593",
+      "sha256": "06f993b11583a82da956e896cf64d4c4e640a8bb20a19688b12b485470765e61",
       "url": "https://kody-w.github.io/grail-layers/llms.txt",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/llms.txt",
-      "sha8": "b844d2738954"
+      "sha8": "06f993b11583"
     }
   ]
 }

@@ -45,7 +45,8 @@ THE AGENT PATH    python3 grail_layers.py --kernel ~/.brainstem/src/rapp_brainst
 KINDS             layer = a Python file applied in memory over the unchanged grail (declares PROVEN_GRAIL shas and
   TOUCHES hook points; unproven or clashing layers are skipped and said so). kernel = a whole Brainstem that
   replaces brainstem.py (e.g. the LisPy kernel, examples/brainstem-kernel in kody-w/lisppy); it gets the user's
-  agents/ and soul.md (GODD data follows every shape) and must pass the same oracle.
+  agents/ and soul.md (GODD data follows every shape) and must pass the same oracle. Layer parts wrap brainstem.py,
+  so when a kernel part is present they do not apply (the supervisor says so in the log).
 RULES             parts are pinned by sha256 and byte-identical on every device; device-specific facts are GODD
   data, never in a part. Order is chain position, never the clock. Chains are private to the device. Nothing is
   deleted: history is the product (receipts: every frame says who asked and what passed). No pip, no settings.

@@ -126,6 +126,8 @@ def start(kernel, shape, port, py, report_dir):
     parts = [] if shape["safe_mode"] else shape["parts"]
     kernels = [p for p in parts if p["kind"] == "kernel"]
     layers = [str(hologram.part_path(HOME / "parts", p)) for p in parts if p["kind"] == "layer"]
+    if kernels and layers:  # layers wrap brainstem.py; a kernel part replaces it, so they do not apply (said, never silent)
+        log("kernel part present: layer parts " + ",".join(p["id"] for p in parts if p["kind"] == "layer") + " do not apply to it")
     if kernels:  # a kernel part replaces brainstem.py; the user's agents and soul (GODD data) follow every shape
         entry = hologram.part_path(HOME / "parts", kernels[0])
         env.setdefault("AGENTS_PATH", os.path.join(os.path.dirname(kernel), "agents"))
@@ -222,7 +224,11 @@ def run_live(a, kernel):
         prev = [f for f in chain.frames if f["kind"] == "shape.gate" and f["payload"]["passed"]
                 and f["payload"]["tile"] != tile_frame["frame_hash"]]
         tiles = {f["frame_hash"]: f for f in chain.frames if f["kind"] == "shape.tile"}
-        shape = tiles[prev[-1]["payload"]["tile"]]["payload"]["object"] if prev and prev[-1]["payload"]["tile"] in tiles else chain.genesis_object()
+        if prev and prev[-1]["payload"]["tile"] in tiles:
+            tile_frame = tiles[prev[-1]["payload"]["tile"]]  # the live gate below is recorded against what actually boots
+            shape = tile_frame["payload"]["object"]
+        else:
+            tile_frame, shape = None, chain.genesis_object()
     p = start(kernel, shape, a.port, a.python, HOME)
     ok, why = healthy(p, a.port, not a.no_probe)
     if tile_frame and not safe:
