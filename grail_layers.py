@@ -38,7 +38,7 @@ import ast, hashlib, importlib.util, os, runpy, sys, traceback
 kernel, layers_dir, names = sys.argv[1], sys.argv[2], [n for n in sys.argv[3].split(",") if n]
 grail_sha = hashlib.sha256(open(kernel, "rb").read()).hexdigest()
 unpinned = os.environ.get("GRAIL_LAYERS_UNPINNED") == "1"
-applied, skipped = [], []
+applied, skipped, taken = [], {}, set()
 for n in names:
     try:
         path = os.path.join(layers_dir, n + ".py")
@@ -47,23 +47,35 @@ for n in names:
             if isinstance(node, ast.Assign) and any(getattr(t, "id", "") == "PROVEN_GRAIL" for t in node.targets):
                 proven = set(ast.literal_eval(node.value))
         if grail_sha not in proven and not unpinned:
-            skipped.append(n)
+            skipped[n] = "unproven for this grail"
             print(f"[grail-layers] layer {n} is not proven for this grail ({grail_sha[:12]}); skipped", flush=True)
             continue
+        touches = set()
+        for node in ast.parse(open(path).read()).body:
+            if isinstance(node, ast.Assign) and any(getattr(t, "id", "") == "TOUCHES" for t in node.targets):
+                touches = set(ast.literal_eval(node.value))
+        clash = touches & taken
+        if clash:  # D365 lesson: never silent last-wins; the pack's order decides and the loser is logged
+            skipped[n] = "conflict on " + ",".join(sorted(clash))
+            print(f"[grail-layers] layer {n} conflicts on {sorted(clash)} with an earlier layer; skipped", flush=True)
+            continue
+        taken |= touches
         spec = importlib.util.spec_from_file_location("grail_layer_" + n, path)
         m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
         m.apply()
         applied.append(n)
     except Exception:
+        skipped[n] = "failed to apply"
         print(f"[grail-layers] layer {n} failed to apply, skipped:\n{traceback.format_exc()}", flush=True)
 os.environ["GRAIL_LAYERS_APPLIED"] = ",".join(applied)
 os.environ["GRAIL_LAYERS_SKIPPED"] = ",".join(skipped)
+report_dir = os.environ.get("GRAIL_LAYERS_REPORT_DIR") or os.path.dirname(layers_dir.rstrip("/"))
 try:
     import json as _j
-    open(os.path.join(os.path.dirname(layers_dir.rstrip("/")), "applied.json"), "w").write(_j.dumps({"grail_sha256": grail_sha, "applied": applied, "skipped_unproven": skipped}))
+    open(os.path.join(report_dir, "applied.json"), "w").write(_j.dumps({"grail_sha256": grail_sha, "applied": applied, "skipped": skipped}))
 except Exception:
     pass
-print(f"[grail-layers] grail {grail_sha[:12]}; applied: {applied or 'none'}; skipped (unproven): {skipped or 'none'}", flush=True)
+print(f"[grail-layers] grail {grail_sha[:12]}; applied: {applied or 'none'}; skipped: {skipped or 'none'}", flush=True)
 sys.argv = [kernel]
 sys.path.insert(0, os.path.dirname(kernel))
 os.chdir(os.path.dirname(kernel))
@@ -86,7 +98,7 @@ def http(url, body=None, timeout=10):
 
 
 def start(kernel, layers, port, py):
-    env = dict(os.environ, PORT=str(port))
+    env = dict(os.environ, PORT=str(port), GRAIL_LAYERS_REPORT_DIR=str(HERE))
     if layers:
         cmd = [py, "-c", BOOT, kernel, str(Path(os.environ.get("GRAIL_LAYERS_DIR") or (HERE / "layers"))), ",".join(layers)]
     else:
@@ -139,7 +151,10 @@ def main():
     ap.add_argument("--no-probe", action="store_true")
     a = ap.parse_args()
     kernel = str(Path(a.kernel).expanduser().resolve())
-    layers = [] if a.plain else [x for x in a.layers.split(",") if x]
+    safe = a.plain or os.environ.get("GRAIL_SAFE_MODE") == "1"  # safe mode: grail with no layers, always available
+    layers = [] if safe else [x for x in a.layers.split(",") if x]
+    if safe:
+        log("safe mode: starting plain grail, no layers")
     p = start(kernel, layers, a.port, a.python)
     ok, why = healthy(p, a.port, not a.no_probe)
     if layers and not ok:
@@ -151,8 +166,8 @@ def main():
     if layers:
         try:
             rep = json.loads((HERE / "applied.json").read_text())
-            layers, skipped = rep.get("applied", layers), rep.get("skipped_unproven", [])
-            why += f"; grail {rep.get('grail_sha256', '')[:12]}" + (f"; skipped as unproven: {','.join(skipped)}" if skipped else "")
+            layers, skipped = rep.get("applied", layers), rep.get("skipped", {})
+            why += f"; grail {rep.get('grail_sha256', '')[:12]}" + (("; skipped: " + "; ".join(f"{k} ({v})" for k, v in skipped.items())) if skipped else "")
         except Exception:
             pass
     log((("running grail + " + ",".join(layers)) if layers else "running plain grail") + f" on port {a.port}: {why}")

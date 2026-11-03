@@ -1,2 +1,1 @@
-2026-11-03 12:24:08 running grail + responses_models
-2026-11-03 12:24:08 running grail + responses_models
+2026-11-03 12:34:26 running grail + responses_models on port 7196: health ok (probe skipped); grail 35618683ebc3; skipped: clash_demo (conflict on requests.post)

@@ -44,6 +44,13 @@ Rules:
   The supervisor computes the running grail's sha256 and skips any layer not in that set (logged as
   "skipped as unproven"), so a new grail release can never run an unproven layer. Re-prove and add the
   sha for each grail release; `GRAIL_LAYERS_UNPINNED=1` lifts this only in a lab.
+- **Declare what you touch.** `TOUCHES = {"requests.post", ...}` names the hook points the layer wraps.
+  Two enabled layers touching the same point conflict: the earlier one in the pack's order applies, the
+  later is skipped and logged. Never silent last-wins (the Dynamics 365 solution-layering lesson).
+- **Published layers only.** A layer loads only if it came from RAR with a matching sha256. A local file
+  loads only in lab mode (`GRAIL_LAYERS_UNPINNED=1`) and is logged as such, so no ad hoc layer can sit
+  on top of published ones unseen (the D365 "unmanaged layer always wins" lesson).
+- **Layers own no user data.** Uninstalling or disabling a layer never deletes anything the user made.
 - **Wrap, never replace.** Hold a reference to the original call and fall back to it on any exception.
 - **Additive only.** Old requests behave exactly as before. A layer may add capability, never remove it.
 - **No files written into the grail's folders.** Layer state lives under `~/.brainstem/layers/`.
@@ -61,6 +68,17 @@ Rules:
 5. Only if a layer has proven itself for every user, and the kernel truly cannot work without it,
    does Kody open a grail release window to fold it in. That's Linux's "out-of-tree first,
    upstream when proven".
+
+## Safe mode and distros
+
+- **Safe mode is always one step away.** `grail_layers.py --plain` (or `GRAIL_SAFE_MODE=1`) starts plain
+  grail with no layers, whatever distro is installed. Layers are files beside the grail; not loading them is
+  plain grail. The grail is the ultimate fallback regardless of distro.
+- **Distros include layers the same way.** A distro's stack pack lists its layers (`install.layers`) and the
+  grail sha it pins; the same supervisor applies them, and the same fallback protects them. The mainline
+  path (this one-liner) and a distro differ only in which pack the layers come from.
+- **See what's active.** `~/.brainstem/layers/applied.json` and `layers.log` say, for every start: the grail
+  sha, which layers applied, which were skipped and why (unproven, conflict, failed).
 
 ## Layers today
 
