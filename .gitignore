@@ -3,3 +3,4 @@ brainstem-*.log
 sup-*.log
 applied.json
 enabled
+__pycache__/

@@ -30,6 +30,33 @@ Who did this before: Linux livepatch and kpatch (patch a running kernel in memor
 never changes), Fedora Silverblue/ostree (immutable base plus layered packages, rollback in one
 step), and ChromeOS A/B updates (a bad update boots back into the known-good slot).
 
+
+## The Brainstem is a living hologram (2026-11-03)
+
+The supervisor now keeps a **rapp/1 chain per device** (`~/.brainstem/layers/chain.jsonl`,
+canon: https://kody-w.github.io/living-holograms/paper.html). Frame #0 is the grail's sha256. The object carried
+is the shape (`brainstem-shape/1`: the grail pin, safe mode, and an ordered list of parts pinned by sha256 with
+publisher-scoped ids). The shape changes only through one pure lens (`shape_lens.py`), as a tile; **a tile takes
+effect only after a passing gate frame**, and every boot appends a live gate frame. Two live failures in a row
+fall back to the previous passing shape, then to plain grail.
+
+| You say (through chat, `brainstem_shape_agent.py`) | The supervisor does |
+|---|---|
+| what am I running | `--status`: the shape is the SBOM, plus any part whose bytes moved |
+| update my brainstem with X | `--apply`: lens → tile → boot in the lab on a spare port → real `/chat` probe → gate frame; live untouched until restart |
+| undo / put it back | `--undo`: the previous authorised shape, gated the same way (Time Machine: any earlier tile can be re-applied) |
+| what changed since Tuesday | `--since`: every frame, who asked, what passed (receipts) |
+| check the history | `--replay`: every tile re-run through the recorded lens must give the same head |
+
+Two kinds of part: `layer` (a Python file applied in memory over the unchanged grail) and `kernel` (a whole
+Brainstem that replaces `brainstem.py`, e.g. the LisPy kernel from kody-w/lisppy; it gets the user's `agents/` and
+`soul.md`, because GODD data follows every shape, and must pass the same rapp-1 oracle). Proven on 2026-11-03: a
+layer part and the LisPy kernel part both passed the lab gate and ran live through the chain; replay reproduced the head.
+
+Dynamics 365 lessons applied: publisher-scoped ids from day one, no unmanaged change can sit above published parts
+(the lens is the only door), parts never hold user data, boot-time sha integrity of every part. Knight Capital: no
+feature flags, a part is on by being in the shape. Everything is one page for an AI: `llms.txt`.
+
 ## The layer contract (`grail-layer/1`)
 
 A layer is one Python file in RAR `stacks/grail-layers/`, with one function:

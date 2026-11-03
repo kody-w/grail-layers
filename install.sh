@@ -25,7 +25,9 @@ PY="$BS/venv/bin/python"; [ -x "$PY" ] || PY="$(command -v python3)"
 
 say "Step 2 of 3: installing layers from RAR"
 mkdir -p "$DEST/layers"
-curl -fsSL "$SELF/grail_layers.py" -o "$DEST/grail_layers.py.new" && mv "$DEST/grail_layers.py.new" "$DEST/grail_layers.py"
+for f in grail_layers.py hologram.py shape_lens.py rapp.py; do   # the supervisor + the hologram (rapp/1 chain, the one lens)
+  curl -fsSL "$SELF/$f" -o "$DEST/$f.new" && mv "$DEST/$f.new" "$DEST/$f"
+done
 curl -fsSL "$RAR/pack.json" -o "$DEST/pack.json"
 "$PY" - "$DEST" "$RAR" <<'PY'
 import hashlib, json, sys, urllib.request, pathlib
