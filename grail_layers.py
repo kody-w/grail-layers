@@ -33,54 +33,65 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 LOG = HERE / "layers.log"
 
-BOOT = r'''
-import ast, hashlib, importlib.util, os, runpy, sys, traceback
-kernel, layers_dir, names = sys.argv[1], sys.argv[2], [n for n in sys.argv[3].split(",") if n]
-grail_sha = hashlib.sha256(open(kernel, "rb").read()).hexdigest()
-unpinned = os.environ.get("GRAIL_LAYERS_UNPINNED") == "1"
-applied, skipped, taken = [], {}, set()
-for n in names:
+def apply_layers(kernel_bytes, layers_dir, names, report_dir=None):
+    """Apply layers in THIS process before the kernel runs. Returns (grail_sha, applied, skipped).
+    Importable so a conformance harness (rapp/1 conformance/grail) can run the exact same code path."""
+    import ast, hashlib, importlib.util, traceback
+    grail_sha = hashlib.sha256(kernel_bytes).hexdigest()
+    unpinned = os.environ.get("GRAIL_LAYERS_UNPINNED") == "1"
+    applied, skipped, taken = [], {}, set()
+    for n in names:
+        try:
+            path = os.path.join(layers_dir, n + ".py")
+            proven, touches = set(), set()
+            for node in ast.parse(open(path).read()).body:  # the layer's own sets, read without running it
+                if isinstance(node, ast.Assign):
+                    ids = {getattr(t, "id", "") for t in node.targets}
+                    if "PROVEN_GRAIL" in ids:
+                        proven = set(ast.literal_eval(node.value))
+                    if "TOUCHES" in ids:
+                        touches = set(ast.literal_eval(node.value))
+            if grail_sha not in proven and not unpinned:
+                skipped[n] = "unproven for this grail"
+                print(f"[grail-layers] layer {n} is not proven for this grail ({grail_sha[:12]}); skipped", flush=True)
+                continue
+            clash = touches & taken
+            if clash:  # D365 lesson: never silent last-wins; the pack's order decides and the loser is logged
+                skipped[n] = "conflict on " + ",".join(sorted(clash))
+                print(f"[grail-layers] layer {n} conflicts on {sorted(clash)} with an earlier layer; skipped", flush=True)
+                continue
+            taken |= touches
+            spec = importlib.util.spec_from_file_location("grail_layer_" + n, path)
+            m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+            m.apply()
+            applied.append(n)
+        except Exception:
+            skipped[n] = "failed to apply"
+            print(f"[grail-layers] layer {n} failed to apply, skipped:\n{traceback.format_exc()}", flush=True)
+    os.environ["GRAIL_LAYERS_APPLIED"] = ",".join(applied)
+    os.environ["GRAIL_LAYERS_SKIPPED"] = ",".join(skipped)
+    report_dir = report_dir or os.environ.get("GRAIL_LAYERS_REPORT_DIR") or os.path.dirname(str(layers_dir).rstrip("/"))
     try:
-        path = os.path.join(layers_dir, n + ".py")
-        proven = set()
-        for node in ast.parse(open(path).read()).body:  # the layer's own PROVEN_GRAIL set, read without running it
-            if isinstance(node, ast.Assign) and any(getattr(t, "id", "") == "PROVEN_GRAIL" for t in node.targets):
-                proven = set(ast.literal_eval(node.value))
-        if grail_sha not in proven and not unpinned:
-            skipped[n] = "unproven for this grail"
-            print(f"[grail-layers] layer {n} is not proven for this grail ({grail_sha[:12]}); skipped", flush=True)
-            continue
-        touches = set()
-        for node in ast.parse(open(path).read()).body:
-            if isinstance(node, ast.Assign) and any(getattr(t, "id", "") == "TOUCHES" for t in node.targets):
-                touches = set(ast.literal_eval(node.value))
-        clash = touches & taken
-        if clash:  # D365 lesson: never silent last-wins; the pack's order decides and the loser is logged
-            skipped[n] = "conflict on " + ",".join(sorted(clash))
-            print(f"[grail-layers] layer {n} conflicts on {sorted(clash)} with an earlier layer; skipped", flush=True)
-            continue
-        taken |= touches
-        spec = importlib.util.spec_from_file_location("grail_layer_" + n, path)
-        m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
-        m.apply()
-        applied.append(n)
+        with open(os.path.join(report_dir, "applied.json"), "w") as f:
+            f.write(json.dumps({"grail_sha256": grail_sha, "applied": applied, "skipped": skipped}))
     except Exception:
-        skipped[n] = "failed to apply"
-        print(f"[grail-layers] layer {n} failed to apply, skipped:\n{traceback.format_exc()}", flush=True)
-os.environ["GRAIL_LAYERS_APPLIED"] = ",".join(applied)
-os.environ["GRAIL_LAYERS_SKIPPED"] = ",".join(skipped)
-report_dir = os.environ.get("GRAIL_LAYERS_REPORT_DIR") or os.path.dirname(layers_dir.rstrip("/"))
-try:
-    import json as _j
-    open(os.path.join(report_dir, "applied.json"), "w").write(_j.dumps({"grail_sha256": grail_sha, "applied": applied, "skipped": skipped}))
-except Exception:
-    pass
-print(f"[grail-layers] grail {grail_sha[:12]}; applied: {applied or 'none'}; skipped: {skipped or 'none'}", flush=True)
-sys.argv = [kernel]
-sys.path.insert(0, os.path.dirname(kernel))
-os.chdir(os.path.dirname(kernel))
-runpy.run_path(kernel, run_name="__main__")
-'''
+        pass
+    print(f"[grail-layers] grail {grail_sha[:12]}; applied: {applied or 'none'}; skipped: {skipped or 'none'}", flush=True)
+    return grail_sha, applied, skipped
+
+
+def boot(kernel, layers_dir, names):
+    """Child entry: apply layers, then run the VERIFIED kernel bytes as __main__ (rapp/1 §11.1.5)."""
+    import types
+    kernel_bytes = open(kernel, "rb").read()  # read ONCE: the bytes we hash are the bytes we run
+    apply_layers(kernel_bytes, layers_dir, names)
+    sys.argv = [kernel]
+    sys.path.insert(0, os.path.dirname(kernel))
+    os.chdir(os.path.dirname(kernel))
+    g = types.ModuleType("__main__"); g.__file__ = kernel; g.__builtins__ = __builtins__
+    sys.modules["__main__"] = g
+    exec(compile(kernel_bytes, kernel, "exec"), g.__dict__)  # the verified bytes, never a re-opened path
+
 
 
 def log(msg):
@@ -100,7 +111,7 @@ def http(url, body=None, timeout=10):
 def start(kernel, layers, port, py):
     env = dict(os.environ, PORT=str(port), GRAIL_LAYERS_REPORT_DIR=str(HERE))
     if layers:
-        cmd = [py, "-c", BOOT, kernel, str(Path(os.environ.get("GRAIL_LAYERS_DIR") or (HERE / "layers"))), ",".join(layers)]
+        cmd = [py, str(HERE / "grail_layers.py"), "--boot", kernel, str(Path(os.environ.get("GRAIL_LAYERS_DIR") or (HERE / "layers"))), ",".join(layers)]
     else:
         cmd = [py, kernel]
     out = open(HERE / f"brainstem-{port}.log", "a")
@@ -141,6 +152,9 @@ def stop(p):
 
 
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "--boot":  # child process: --boot <kernel> <layers_dir> <names>
+        boot(sys.argv[2], sys.argv[3], [n for n in sys.argv[4].split(",") if n])
+        return
     ap = argparse.ArgumentParser()
     ap.add_argument("--kernel", required=True)
     enabled = HERE / "enabled"  # one layer name per line, written by install.sh
