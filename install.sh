@@ -22,7 +22,21 @@ if [ -f "${BRAINSTEM_HOME:-$HOME/.brainstem}/src/rapp_brainstem/brainstem.py" ] 
 fi
 if [ "${SKIP_GRAIL:-0}" != "1" ]; then
   say "Step 1 of 3: installing the grail (the base), with its own one-liner"
-  curl -fsSL "$GRAIL_ONE_LINER" | bash
+  # The grail's one-liner ends by running the Brainstem in the foreground (by design; the grail never changes), so a
+  # fresh install would stop here forever. Run it beside us, wait until the engine answers, then stop only that first
+  # foreground copy (no conversation exists yet); the supervisor below takes over the same port.
+  ( curl -fsSL "$GRAIL_ONE_LINER" | bash ) </dev/null 2>&1 &
+  GRAIL_JOB=$!
+  for _ in $(seq 1 900); do
+    curl -sf -o /dev/null --max-time 1 "http://127.0.0.1:${PORT:-7071}/health" && break
+    kill -0 "$GRAIL_JOB" 2>/dev/null || break
+    sleep 1
+  done
+  curl -sf -o /dev/null --max-time 2 "http://127.0.0.1:${PORT:-7071}/health" || { echo "The grail did not start; nothing to layer over."; exit 1; }
+  for P_ in $(lsof -tiTCP:"${PORT:-7071}" -sTCP:LISTEN 2>/dev/null); do
+    ps -o command= -p "$P_" | grep -q "brainstem.py" && kill "$P_" 2>/dev/null   # only the Brainstem the grail just started
+  done
+  wait "$GRAIL_JOB" 2>/dev/null || true
 fi
 KERNEL="$BS/src/rapp_brainstem/brainstem.py"
 [ -f "$KERNEL" ] || { echo "The grail is not installed at $KERNEL; nothing to layer over."; exit 1; }
