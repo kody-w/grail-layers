@@ -1,7 +1,7 @@
 {
   "schema": "grail-layers-status/1.0",
-  "generated": "2026-11-04T14:29:03Z",
+  "generated": "2026-11-04T14:52:14Z",
   "ok": true,
-  "files": 15,
+  "files": 17,
   "layers_source": "https://kody-w.github.io/RAR/stacks/grail-layers/pack.json"
 }

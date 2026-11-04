@@ -1,11 +1,11 @@
 {
   "schema": "grail-layers-registry/1.0",
   "spec": "rapp-static-api/1.1",
-  "generated": "2026-11-04T14:29:03Z",
+  "generated": "2026-11-04T14:52:14Z",
   "pages": "https://kody-w.github.io/grail-layers/",
   "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/",
   "summary": {
-    "files": 15,
+    "files": 17,
     "layers_source": "https://kody-w.github.io/RAR/stacks/grail-layers/pack.json"
   },
   "entries": [
@@ -109,10 +109,24 @@
     },
     {
       "name": "llms.txt",
-      "sha256": "a460397ad03cbeab185eb88257599ac11801c30771723da4f7dbcdab59917ade",
+      "sha256": "26855e9d271bf4e28370102d33343a4d000a8b612a517f98af7ae6b1854d2d58",
       "url": "https://kody-w.github.io/grail-layers/llms.txt",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/llms.txt",
-      "sha8": "a460397ad03c"
+      "sha8": "26855e9d271b"
+    },
+    {
+      "name": "skills/rar-easy-mode/SKILL.md",
+      "sha256": "aee43c056633d401649044e365d9ccd78885aaa3136ce8fb719b2840eeb8999e",
+      "url": "https://kody-w.github.io/grail-layers/skills/rar-easy-mode/SKILL.md",
+      "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/skills/rar-easy-mode/SKILL.md",
+      "sha8": "aee43c056633"
+    },
+    {
+      "name": "skills/rar-easy-mode/rar_easy_mode_agent.py",
+      "sha256": "45a7bbb9d52dd2cd63f8700806724c08d15092a203c1fa85b9fdc245b5915c14",
+      "url": "https://kody-w.github.io/grail-layers/skills/rar-easy-mode/rar_easy_mode_agent.py",
+      "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/skills/rar-easy-mode/rar_easy_mode_agent.py",
+      "sha8": "45a7bbb9d52d"
     }
   ]
 }

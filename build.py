@@ -5,11 +5,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 R = Path(__file__).resolve().parent
 BASE, RAW = "https://kody-w.github.io/grail-layers", "https://raw.githubusercontent.com/kody-w/grail-layers/main"
-SERVED = ["install.sh", "uninstall.sh", "grail_layers.py", "hologram.py", "shape_lens.py", "rapp.py", "brainstem_shape_agent.py", "chaos.py", "succession.py", "succession_drill.py", "packs.py", "add.sh", "README.md", "ALM.md", "llms.txt"]
+SERVED = ["install.sh", "uninstall.sh", "grail_layers.py", "hologram.py", "shape_lens.py", "rapp.py", "brainstem_shape_agent.py", "chaos.py", "succession.py", "succession_drill.py", "packs.py", "add.sh", "README.md", "ALM.md", "llms.txt", "skills/rar-easy-mode/SKILL.md", "skills/rar-easy-mode/rar_easy_mode_agent.py"]
 llms = f"""# grail-layers
 
 > Every grail (Brainstem kernel) update ships as a layer over the unchanged grail; if a layer fails, plain grail runs.
 
+Any AI, easy mode (a RAPP skill: drag into GitHub Copilot Chat in Agent mode, or any AI that runs commands): https://kody-w.github.io/grail-layers/skills/rar-easy-mode/SKILL.md
 Any AI: the one page for all of RAPP (protocol, agents, packs, lifecycle, how to participate) is https://kody-w.github.io/RAR/RAPP.md
 
 - [Install (grail, then layers)]({BASE}/install.sh): `curl -fsSL {BASE}/install.sh | bash`
