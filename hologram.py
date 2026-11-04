@@ -237,7 +237,11 @@ def fetch_part(parts_dir, part):
     p = part_path(parts_dir, part)
     if p.is_file() and sha256_file(p) == part["sha256"]:
         return p
-    b = urllib.request.urlopen(part["locator"], timeout=60).read()
+    url = part["locator"]
+    pin = os.environ.get("RAR_PAGES", "").rstrip("/")
+    if pin and url.startswith("https://kody-w.github.io/RAR/"):  # a pinned catalog fetches from the same pin
+        url = pin + url[len("https://kody-w.github.io/RAR"):]
+    b = urllib.request.urlopen(url, timeout=60).read()
     if hashlib.sha256(b).hexdigest() != part["sha256"]:
         raise ValueError(f"{part['id']}: fetched bytes do not match the pinned sha256; refusing")
     p.parent.mkdir(parents=True, exist_ok=True)
