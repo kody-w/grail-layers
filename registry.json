@@ -1,7 +1,7 @@
 {
   "schema": "grail-layers-registry/1.0",
   "spec": "rapp-static-api/1.1",
-  "generated": "2026-11-04T14:52:14Z",
+  "generated": "2026-11-04T15:11:21Z",
   "pages": "https://kody-w.github.io/grail-layers/",
   "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/",
   "summary": {
@@ -116,17 +116,17 @@
     },
     {
       "name": "skills/rar-easy-mode/SKILL.md",
-      "sha256": "aee43c056633d401649044e365d9ccd78885aaa3136ce8fb719b2840eeb8999e",
+      "sha256": "970138c9880451fbadedd73c24b12d32fc764091fd992e800a31fe337bcdae36",
       "url": "https://kody-w.github.io/grail-layers/skills/rar-easy-mode/SKILL.md",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/skills/rar-easy-mode/SKILL.md",
-      "sha8": "aee43c056633"
+      "sha8": "970138c98804"
     },
     {
       "name": "skills/rar-easy-mode/rar_easy_mode_agent.py",
-      "sha256": "45a7bbb9d52dd2cd63f8700806724c08d15092a203c1fa85b9fdc245b5915c14",
+      "sha256": "146342733e3389561512b68730a67c3f7fb1b9147e56523bedc59b43b1a621ba",
       "url": "https://kody-w.github.io/grail-layers/skills/rar-easy-mode/rar_easy_mode_agent.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/skills/rar-easy-mode/rar_easy_mode_agent.py",
-      "sha8": "45a7bbb9d52d"
+      "sha8": "146342733e33"
     }
   ]
 }
