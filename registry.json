@@ -1,7 +1,7 @@
 {
   "schema": "grail-layers-registry/1.0",
   "spec": "rapp-static-api/1.1",
-  "generated": "2026-11-04T15:23:48Z",
+  "generated": "2026-11-04T15:26:24Z",
   "pages": "https://kody-w.github.io/grail-layers/",
   "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/",
   "summary": {
@@ -81,10 +81,10 @@
     },
     {
       "name": "packs.py",
-      "sha256": "b6ab97b304dcb008a082ea3431449fed9e10a13e05430d5b1debb019bf4d8929",
+      "sha256": "2f47634fc77e07b1d8a2098a88a2116981580d6dcafab03138e8cde66d592dff",
       "url": "https://kody-w.github.io/grail-layers/packs.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/packs.py",
-      "sha8": "b6ab97b304dc"
+      "sha8": "2f47634fc77e"
     },
     {
       "name": "add.sh",

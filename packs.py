@@ -238,9 +238,9 @@ def main():
     have["packs"] = sorted(set(have["packs"]) | {n for n, _ in chosen})
     record.write_text(json.dumps(have, indent=1))
 
-    need = new_parts or any(not f.endswith("_sense.py") for f in xbodies)  # pages are added when the Brainstem starts
+    need = bool(new_parts)  # agents, senses and pages hot-load like agents/; only a new layer needs one restart
     if need and not a.no_restart and not DEFAULT_HOME:  # the launchd service runs the default home only: never restart someone else's Brainstem
-        print(f"Restart the Brainstem at {BASE} to load the new layers and pages (its service is not the default one).")
+        print(f"Restart the Brainstem at {BASE} to load the new layers (its service is not the default one).")
     elif need and not a.no_restart and sys.platform == "darwin":
         subprocess.run(["launchctl", "kickstart", "-k", f"gui/{os.getuid()}/com.brainstem.server"], capture_output=True)
         for _ in range(90):
