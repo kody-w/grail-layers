@@ -2,7 +2,7 @@ name: handover-proof
 # Never break the conversation, proven on a clean Mac: fresh grail + layers from THIS commit, then a handover and a
 # supervisor self-update while a client hits the Brainstem every 0.2s. Pass = 0 failed requests.
 on:
-  push:
+  # push: (macOS runners are not being assigned on this account; run by hand when they are)
   workflow_dispatch:
 jobs:
   proof:
