@@ -1,7 +1,7 @@
 {
   "schema": "grail-layers-registry/1.0",
   "spec": "rapp-static-api/1.1",
-  "generated": "2026-11-04T15:26:24Z",
+  "generated": "2026-11-04T16:46:35Z",
   "pages": "https://kody-w.github.io/grail-layers/",
   "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/",
   "summary": {
@@ -11,10 +11,10 @@
   "entries": [
     {
       "name": "install.sh",
-      "sha256": "9d7f1681c54b6f7f54c907b219193c1bd94af431b5396990cf43735ffb7db835",
+      "sha256": "5eb6b2ccdb235142af0d99d8061535b703dfff910b3c49327e5118cf74b2ad10",
       "url": "https://kody-w.github.io/grail-layers/install.sh",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/install.sh",
-      "sha8": "9d7f1681c54b"
+      "sha8": "5eb6b2ccdb23"
     },
     {
       "name": "uninstall.sh",
@@ -25,10 +25,10 @@
     },
     {
       "name": "grail_layers.py",
-      "sha256": "5d1c9e9cad51dff835d6b07a052e4c0841eb7b78368930c6495510e65af2234f",
+      "sha256": "77b62b951a9256f75f9f779578a7596793d4995268e9671327f3697af2fb44cb",
       "url": "https://kody-w.github.io/grail-layers/grail_layers.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/grail_layers.py",
-      "sha8": "5d1c9e9cad51"
+      "sha8": "77b62b951a92"
     },
     {
       "name": "hologram.py",
@@ -81,10 +81,10 @@
     },
     {
       "name": "packs.py",
-      "sha256": "2f47634fc77e07b1d8a2098a88a2116981580d6dcafab03138e8cde66d592dff",
+      "sha256": "131b87e4751204a34d3ca3d47b15eae5848df3b5f276c06bcb6b2ee10d7b2cf9",
       "url": "https://kody-w.github.io/grail-layers/packs.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/packs.py",
-      "sha8": "2f47634fc77e"
+      "sha8": "131b87e47512"
     },
     {
       "name": "add.sh",

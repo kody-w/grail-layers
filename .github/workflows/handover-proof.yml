@@ -1,0 +1,50 @@
+name: handover-proof
+# Never break the conversation, proven on a clean Mac: fresh grail + layers from THIS commit, then a handover and a
+# supervisor self-update while a client hits the Brainstem every 0.2s. Pass = 0 failed requests.
+on:
+  # push: (macOS runners are not being assigned on this account; run by hand when they are)
+  workflow_dispatch:
+jobs:
+  proof:
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Serve this commit's files
+        run: (python3 -m http.server 8798 --bind 127.0.0.1 >/dev/null 2>&1 &) && sleep 1
+      - name: Fresh install (grail one-liner + layers from this commit), no launchd
+        env:
+          GRAIL_LAYERS_URL: http://127.0.0.1:8798
+          GRAIL_LAYERS_NO_LAUNCHD: "1"
+        run: |
+          curl -fsSL http://127.0.0.1:8798/install.sh | bash || true
+          test -f ~/.brainstem/src/rapp_brainstem/brainstem.py
+          test -f ~/.brainstem/layers/grail_layers.py
+      - name: Stop anything the grail installer started, then run the supervisor
+        run: |
+          for p in $(lsof -ti tcp:7071 -sTCP:LISTEN || true); do kill $p || true; done; sleep 2
+          cd ~/.brainstem/layers
+          (~/.brainstem/venv/bin/python grail_layers.py --kernel ~/.brainstem/src/rapp_brainstem/brainstem.py --no-probe > sup.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf localhost:7071/health >/dev/null && break; sleep 2; done
+          curl -sf localhost:7071/health && test -f supervisor.pid
+      - name: Load + handover + supervisor self-update (0 failures)
+        run: |
+          python3 - <<'PY'
+          import os, signal, threading, time, urllib.request
+          stop, res = threading.Event(), []
+          def load():
+              while not stop.is_set():
+                  try: res.append(urllib.request.urlopen("http://127.0.0.1:7071/health", timeout=10).status == 200)
+                  except Exception as e: res.append(False); print("FAIL", e)
+                  time.sleep(0.2)
+          t = threading.Thread(target=load); t.start(); time.sleep(3)
+          home = os.path.expanduser("~/.brainstem/layers"); pid = int(open(home + "/supervisor.pid").read())
+          os.kill(pid, signal.SIGHUP); time.sleep(25)
+          open(home + "/grail_layers.py", "a").write("\n# ci self-update marker\n"); os.kill(pid, signal.SIGHUP); time.sleep(25)
+          stop.set(); t.join()
+          log = open(home + "/sup.log").read(); print(log[-1500:])
+          ok = sum(res); print(f"requests={len(res)} ok={ok} failed={len(res) - ok}")
+          assert len(res) > 100 and ok == len(res), "a request failed during handover"
+          assert log.count("handed over to") >= 2 and "adopted child" in log, "handover/self-update did not happen"
+          assert int(open(home + "/supervisor.pid").read()) == pid
+          PY

@@ -15,6 +15,11 @@ BS="${BRAINSTEM_HOME:-$HOME/.brainstem}"
 DEST="$BS/layers"
 say(){ printf '\033[1m%s\033[0m\n' "$*"; }
 
+# Never break the conversation: when a Brainstem is already installed, the grail's one-liner (which stops whatever
+# runs on 7071) is not re-run; updates here are supervisor + layers, handed over live. GRAIL_REINSTALL=1 forces it.
+if [ -f "${BRAINSTEM_HOME:-$HOME/.brainstem}/src/rapp_brainstem/brainstem.py" ] && [ "${GRAIL_REINSTALL:-0}" != "1" ]; then
+  SKIP_GRAIL=1; echo "The Brainstem is already installed: updating the layers around it, without stopping it."
+fi
 if [ "${SKIP_GRAIL:-0}" != "1" ]; then
   say "Step 1 of 3: installing the grail (the base), with its own one-liner"
   curl -fsSL "$GRAIL_ONE_LINER" | bash
@@ -64,7 +69,14 @@ PY
 
 say "Step 3 of 3: starting the Brainstem as grail + layers"
 PLIST="$HOME/Library/LaunchAgents/com.brainstem.server.plist"
-if [ "$(uname)" = "Darwin" ] && [ -f "$PLIST" ] && [ "${GRAIL_LAYERS_NO_LAUNCHD:-0}" != "1" ]; then
+SUP_PID="$(cat "$DEST/supervisor.pid" 2>/dev/null || true)"
+if [ -n "$SUP_PID" ] && kill -0 "$SUP_PID" 2>/dev/null && ps -o command= -p "$SUP_PID" | grep -q grail_layers.py; then  # only a handover-capable supervisor writes supervisor.pid (an old one would die on HUP)
+  # Live update: the running supervisor hands over to a fresh copy (new code, gated), then re-execs itself.
+  LB="$DEST/last-boot.json"; BEFORE="$(stat -f %m "$LB" 2>/dev/null || echo 0)"
+  kill -HUP "$SUP_PID"
+  for _ in $(seq 1 300); do [ "$(stat -f %m "$LB" 2>/dev/null || echo 0)" != "$BEFORE" ] && break; sleep 1; done
+  echo "Updated live; nothing was interrupted."
+elif [ "$(uname)" = "Darwin" ] && [ -f "$PLIST" ] && [ "${GRAIL_LAYERS_NO_LAUNCHD:-0}" != "1" ]; then
   # Keep the grail's own job as the restore point (refreshed whenever the grail installer rewrote it).
   if ! /usr/libexec/PlistBuddy -c "Print :ProgramArguments:1" "$PLIST" 2>/dev/null | grep -q grail_layers.py; then
     cp "$PLIST" "$DEST/com.brainstem.server.plist.grail"
@@ -74,6 +86,12 @@ if [ "$(uname)" = "Darwin" ] && [ -f "$PLIST" ] && [ "${GRAIL_LAYERS_NO_LAUNCHD:
     -c "Add :ProgramArguments:0 string $PY" -c "Add :ProgramArguments:1 string $DEST/grail_layers.py" \
     -c "Add :ProgramArguments:2 string --kernel" -c "Add :ProgramArguments:3 string $KERNEL" \
     -c "Add :ProgramArguments:4 string --python" -c "Add :ProgramArguments:5 string $PY" "$PLIST"
+  # First start (or an old supervisor without handover): start when no reply is in flight, so none is cut.
+  PORT_="${PORT:-7071}"
+  for _ in $(seq 1 120); do
+    lsof -nP -iTCP:"$PORT_" -sTCP:ESTABLISHED >/dev/null 2>&1 || { sleep 1; lsof -nP -iTCP:"$PORT_" -sTCP:ESTABLISHED >/dev/null 2>&1 || break; }
+    sleep 1
+  done
   launchctl bootout "gui/$(id -u)" "$PLIST" 2>/dev/null || true
   launchctl bootstrap "gui/$(id -u)" "$PLIST"
   # Nightly chaos drill (Chaos Monkey lesson: bounded, scheduled, scratch copy only, never the live chain).

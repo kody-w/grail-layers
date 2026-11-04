@@ -100,11 +100,79 @@ def apply_layers(kernel_bytes, layers_dir, names, report_dir=None):
     return grail_sha, applied, skipped
 
 
+
+def _handover_hooks():
+    """Child side of the overlapping handover (never break the conversation). The server shares its port with the
+    next copy (SO_REUSEPORT: on macOS the newest bound socket takes every new call), counts replies in flight
+    (a stream counts until its last chunk), and on SIGUSR1 finishes those replies, then exits. Grail bytes untouched."""
+    import threading
+    try:
+        import flask
+        import werkzeug.serving as ws
+    except Exception as e:
+        print(f"[grail-layers] handover hooks not installed ({e})", flush=True)
+        return
+    ws.BaseWSGIServer.allow_reuse_port = True
+    orig_bind = ws.BaseWSGIServer.server_bind
+
+    def server_bind(self):
+        orig_bind(self)
+        marker = os.environ.get("GRAIL_LAYERS_BOUND")
+        if marker:
+            Path(marker).write_text(str(os.getpid()))
+    ws.BaseWSGIServer.server_bind = server_bind
+    live = {"n": 0}
+    mu = threading.Lock()
+
+    def bump(d):
+        with mu:
+            live["n"] += d
+
+    class Counted:
+        def __init__(self, it):
+            self.it, self.done = it, False
+
+        def __iter__(self):
+            return iter(self.it)
+
+        def close(self):
+            try:
+                getattr(self.it, "close", lambda: None)()
+            finally:
+                if not self.done:
+                    self.done = True
+                    bump(-1)
+    orig_call = flask.Flask.__call__
+
+    def __call__(self, environ, start_response):
+        bump(1)
+        try:
+            return Counted(orig_call(self, environ, start_response))
+        except BaseException:
+            bump(-1)
+            raise
+    flask.Flask.__call__ = __call__
+
+    def drain(*_):
+        def wait():
+            deadline, quiet = time.time() + float(os.environ.get("GRAIL_LAYERS_DRAIN_MAX", 900)), 0
+            while time.time() < deadline:
+                quiet = quiet + 1 if live["n"] == 0 else 0
+                if quiet >= 4:  # one quiet second: every reply that came here has finished
+                    break
+                time.sleep(0.25)
+            print(f"[grail-layers] handed over; {live['n']} replies were still open at exit", flush=True)
+            os._exit(0)
+        threading.Thread(target=wait, daemon=True).start()
+    signal.signal(signal.SIGUSR1, drain)
+
+
 def boot(kernel, layers_dir, names):
     """Child entry: apply layers, then run the VERIFIED kernel bytes as __main__ (rapp/1 §11.1.5)."""
     import types
     kernel_bytes = open(kernel, "rb").read()  # read ONCE: the bytes we hash are the bytes we run
     apply_layers(kernel_bytes, layers_dir, names)
+    _handover_hooks()
     sys.argv = [kernel]
     sys.path.insert(0, os.path.dirname(kernel))
     os.chdir(os.path.dirname(kernel))
@@ -141,9 +209,9 @@ def http(url, body=None, timeout=10):
         return r.status, json.loads(r.read() or b"{}")
 
 
-def start(kernel, shape, port, py, report_dir):
+def start(kernel, shape, port, py, report_dir, extra=None):
     """Start the Brainstem the shape describes: plain grail, grail + layer parts, or a kernel part."""
-    env = dict(os.environ, PORT=str(port), GRAIL_LAYERS_REPORT_DIR=str(report_dir))
+    env = dict(os.environ, PORT=str(port), GRAIL_LAYERS_REPORT_DIR=str(report_dir), **(extra or {}))
     parts = [] if shape["safe_mode"] else shape["parts"]
     kernels = [p for p in parts if p["kind"] == "kernel"]
     layers = [str(hologram.part_path(HOME / "parts", p)) for p in parts if p["kind"] == "layer"]
@@ -157,8 +225,8 @@ def start(kernel, shape, port, py, report_dir):
         cmd, cwd = [py, str(entry)], str(entry.parent)
     elif layers:
         cmd, cwd = [py, str(HERE / "grail_layers.py"), "--boot", kernel, str(HOME / "parts"), ",".join(layers)], os.path.dirname(kernel)
-    else:
-        cmd, cwd = [py, kernel], os.path.dirname(kernel)
+    else:  # plain grail runs through the same child entry, so it too can hand over without a gap
+        cmd, cwd = [py, str(HERE / "grail_layers.py"), "--boot", kernel, str(HOME / "parts"), ""], os.path.dirname(kernel)
     out = open(HOME / f"brainstem-{port}.log", "a")
     return subprocess.Popen(cmd, cwd=cwd, env=env, stdout=out, stderr=subprocess.STDOUT, start_new_session=True)
 
@@ -302,11 +370,110 @@ def run_live(a, kernel):
     if ev.get("skipped"):
         notices.append("Skipped parts this boot: " + "; ".join(f"{k} ({v})" for k, v in ev["skipped"].items()) + ".")
     last_boot(what=what, why=why, port=a.port, fallback=bool(notices), notices=notices, skipped=ev.get("skipped", {}))
+    supervise(a, kernel, p)
+
+
+class Adopted:
+    """The serving child, re-adopted after the supervisor replaced its own code with os.execv (same pid, same child)."""
+    def __init__(self, pid):
+        self.pid, self.returncode = pid, None
+
+    def poll(self):
+        if self.returncode is None:
+            try:
+                pid, status = os.waitpid(self.pid, os.WNOHANG)
+            except ChildProcessError:
+                self.returncode = 0
+                return 0
+            if pid:
+                self.returncode = os.waitstatus_to_exitcode(status)
+        return self.returncode
+
+    def wait(self, timeout=None):
+        end = time.time() + (timeout if timeout is not None else 1e9)
+        while self.poll() is None:
+            if time.time() > end:
+                raise subprocess.TimeoutExpired(str(self.pid), timeout)
+            time.sleep(0.2)
+        return self.returncode
+
+
+SELF_SHA = None
+
+
+def _self_sha():
+    import hashlib
+    return hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+
+
+def supervise(a, kernel, p):
+    """The supervisor's steady state: watch the child; on SIGHUP hand over to the verified head (and, if this
+    supervisor's own code was updated, re-exec into it while the new child keeps serving: no stop, no gap)."""
+    global SELF_SHA
+    SELF_SHA = SELF_SHA or _self_sha()
+    want = {"handover": False}
+    signal.signal(signal.SIGHUP, lambda *_: want.__setitem__("handover", True))
     signal.signal(signal.SIGTERM, lambda *_: (stop(p), sys.exit(0)))
+    (HOME / "supervisor.pid").write_text(str(os.getpid()))
     try:
-        sys.exit(p.wait())
+        while True:
+            if want["handover"]:
+                want["handover"] = False
+                p = handover(a, kernel, p)
+                signal.signal(signal.SIGTERM, lambda *_, _p=p: (stop(_p), sys.exit(0)))
+                if _self_sha() != SELF_SHA:
+                    args = [x for x in sys.argv if not x.startswith("--adopt")]
+                    log(f"supervisor code updated; re-executing it, child {p.pid} keeps serving")
+                    os.execv(sys.executable, [sys.executable] + args + [f"--adopt={p.pid}"])
+            rc = p.poll()
+            if rc is not None:
+                sys.exit(rc)
+            time.sleep(0.5)
     except KeyboardInterrupt:
         stop(p)
+
+
+def handover(a, kernel, p):
+    """Never break the conversation: start the verified head beside the running copy on the same port, gate it with
+    real calls, then let the old copy finish its replies and leave. A failing new copy is stopped; the old one never
+    stopped serving. Returns the process that now serves."""
+    chain = open_chain(kernel)
+    shape, tile = chain.authorised()
+    parts = [] if shape["safe_mode"] else shape["parts"]
+    if any(x["kind"] == "kernel" for x in parts):
+        log("handover: a kernel part needs a full start; it will apply at the next start")
+        return p
+    bad = hologram.check_parts(HOME / "parts", shape)
+    if bad:
+        log("handover refused: " + "; ".join(f"{k} ({v})" for k, v in bad.items()))
+        return p
+    marker = HOME / f"bound-{os.getpid()}-{int(time.time() * 1000)}.pid"
+    q = start(kernel, shape, a.port, a.python, HOME, extra={"GRAIL_LAYERS_BOUND": str(marker)})
+    for _ in range(120):  # the new copy owns the port only once it has bound; before that, /health is the old copy's
+        if q.poll() is not None or (marker.is_file() and marker.read_text().strip() == str(q.pid)):
+            break
+        time.sleep(0.5)
+    bound = marker.is_file()
+    ok, why = healthy(q, a.port, not a.no_probe) if bound and q.poll() is None else (False, "the new copy could not take the port")
+    marker.unlink(missing_ok=True)
+    if tile:
+        hologram.gate(chain, tile, "live", ok, {**evidence(HOME, why), "how": "overlapping handover"})
+    what = "plain grail" if not parts else "grail + " + ",".join(x["id"] for x in parts)
+    if not ok:
+        stop(q)
+        log(f"handover to {what} failed ({why}); the running copy kept serving")
+        last_boot(what="unchanged", why=why, port=a.port, fallback=True,
+                  notices=[f"I tried to switch to {what} but it failed its check ({why}), so nothing changed."])
+        return p
+    try:
+        os.kill(p.pid, signal.SIGUSR1)  # the old copy finishes its replies, then exits
+    except ProcessLookupError:
+        pass
+    import threading
+    threading.Thread(target=p.wait, daemon=True).start()  # reap the old copy when it leaves
+    log(f"handed over to {what} on port {a.port}: {why}")
+    last_boot(what=what, why=why, port=a.port, fallback=False, notices=[f"Now running {what}; nothing was interrupted."])
+    return q
 
 
 def run_apply(a, kernel):
@@ -336,7 +503,7 @@ def run_apply(a, kernel):
     g = hologram.gate(chain, t, "lab", ok, evidence(lab, why))
     log(f"--apply tile #{t['seq']} gate #{g['seq']}: {'PASSED' if ok else 'FAILED'} ({why})")
     print(json.dumps({"ok": ok, "tile": t["seq"], "gate": g["seq"], "why": why,
-                      "next": "restart the Brainstem to run it" if ok else "nothing changed; the live Brainstem is untouched"}))
+                      "next": "it goes live at the next handover (packs.py and the installer trigger one; nothing is interrupted)" if ok else "nothing changed; the live Brainstem is untouched"}))
     return 0 if ok else 1
 
 
@@ -401,6 +568,7 @@ def main():
     ap.add_argument("--python", default=None, help="interpreter for the Brainstem (default: the venv beside the kernel, else this one)")
     ap.add_argument("--plain", action="store_true")
     ap.add_argument("--no-probe", action="store_true")
+    ap.add_argument("--adopt", type=int, help=argparse.SUPPRESS)  # internal: re-exec after a supervisor update
     ap.add_argument("--apply", help="JSON params for shape_lens (add/remove/safe_mode/set)")
     ap.add_argument("--by", help="who asked (a person's name) for the tile's caller field")
     ap.add_argument("--status", action="store_true")
@@ -465,6 +633,11 @@ def main():
         a.apply = json.dumps({"action": "set", "parts": obj["parts"], "safe_mode": obj["safe_mode"]})
     if a.apply:
         sys.exit(run_apply(a, kernel))
+    if a.adopt:  # this supervisor just replaced its own code; the child it started keeps serving
+        a.python = a.python or sys.executable
+        log(f"supervisor restarted in place; adopted child {a.adopt}")
+        supervise(a, kernel, Adopted(a.adopt))
+        return
     run_live(a, kernel)
 
 
