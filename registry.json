@@ -1,20 +1,20 @@
 {
   "schema": "grail-layers-registry/1.0",
   "spec": "rapp-static-api/1.1",
-  "generated": "2026-11-03T22:09:05Z",
+  "generated": "2026-11-04T13:20:43Z",
   "pages": "https://kody-w.github.io/grail-layers/",
   "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/",
   "summary": {
-    "files": 12,
+    "files": 14,
     "layers_source": "https://kody-w.github.io/RAR/stacks/grail-layers/pack.json"
   },
   "entries": [
     {
       "name": "install.sh",
-      "sha256": "ee9ff71531926d334c113982708ec19a21641f829d75c4cc0305a4cf015e6f3e",
+      "sha256": "9d7f1681c54b6f7f54c907b219193c1bd94af431b5396990cf43735ffb7db835",
       "url": "https://kody-w.github.io/grail-layers/install.sh",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/install.sh",
-      "sha8": "ee9ff7153192"
+      "sha8": "9d7f1681c54b"
     },
     {
       "name": "uninstall.sh",
@@ -80,18 +80,32 @@
       "sha8": "7932bed7e907"
     },
     {
+      "name": "packs.py",
+      "sha256": "08a9b352d06cdfc4eb982a84092c1cd40cea18dadfe072f9e3b56362ac258c55",
+      "url": "https://kody-w.github.io/grail-layers/packs.py",
+      "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/packs.py",
+      "sha8": "08a9b352d06c"
+    },
+    {
+      "name": "add.sh",
+      "sha256": "b56ab942e32a1f087b958e252fec29864be878ce4e5f247777af5427216316ad",
+      "url": "https://kody-w.github.io/grail-layers/add.sh",
+      "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/add.sh",
+      "sha8": "b56ab942e32a"
+    },
+    {
       "name": "README.md",
-      "sha256": "2b48a7d38a0eda9f4b84507a5fe4a5a08b6330ca35fe2d3cc24cf070c1775f71",
+      "sha256": "2f67dd588da922a0c1e1d08f4873a9ecbf2a130b48031e89ab98fe018f6c9c9f",
       "url": "https://kody-w.github.io/grail-layers/README.md",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/README.md",
-      "sha8": "2b48a7d38a0e"
+      "sha8": "2f67dd588da9"
     },
     {
       "name": "llms.txt",
-      "sha256": "321e765dc4eebb1dba3edba0fd0ec97e28e9503c02156c888f9abd54b62df172",
+      "sha256": "e6d86870385d8b00e674c29216cd9487c28adb5c05236053b21a1cf0e65cc505",
       "url": "https://kody-w.github.io/grail-layers/llms.txt",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/llms.txt",
-      "sha8": "321e765dc4ee"
+      "sha8": "e6d86870385d"
     }
   ]
 }

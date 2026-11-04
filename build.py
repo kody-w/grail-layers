@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 R = Path(__file__).resolve().parent
 BASE, RAW = "https://kody-w.github.io/grail-layers", "https://raw.githubusercontent.com/kody-w/grail-layers/main"
-SERVED = ["install.sh", "uninstall.sh", "grail_layers.py", "hologram.py", "shape_lens.py", "rapp.py", "brainstem_shape_agent.py", "chaos.py", "succession.py", "succession_drill.py", "README.md", "llms.txt"]
+SERVED = ["install.sh", "uninstall.sh", "grail_layers.py", "hologram.py", "shape_lens.py", "rapp.py", "brainstem_shape_agent.py", "chaos.py", "succession.py", "succession_drill.py", "packs.py", "add.sh", "README.md", "llms.txt"]
 llms = f"""# grail-layers
 
 > Every grail (Brainstem kernel) update ships as a layer over the unchanged grail; if a layer fails, plain grail runs.
@@ -13,6 +13,7 @@ llms = f"""# grail-layers
 - [Install (grail, then layers)]({BASE}/install.sh): `curl -fsSL {BASE}/install.sh | bash`
 - [Uninstall (plain grail)]({BASE}/uninstall.sh)
 - [Supervisor]({BASE}/grail_layers.py)
+- [Add packs to your one Brainstem]({BASE}/add.sh): `curl -fsSL {BASE}/add.sh | bash -s -- starter-personal` (any mix of RAR packs, all or nothing)
 - [The pattern and the layer contract]({BASE}/README.md)
 - [Layer files in RAR](https://kody-w.github.io/RAR/stacks/grail-layers/pack.json)
 - [Registry]({BASE}/registry.json)

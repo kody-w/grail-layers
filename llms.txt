@@ -5,6 +5,7 @@
 - [Install (grail, then layers)](https://kody-w.github.io/grail-layers/install.sh): `curl -fsSL https://kody-w.github.io/grail-layers/install.sh | bash`
 - [Uninstall (plain grail)](https://kody-w.github.io/grail-layers/uninstall.sh)
 - [Supervisor](https://kody-w.github.io/grail-layers/grail_layers.py)
+- [Add packs to your one Brainstem](https://kody-w.github.io/grail-layers/add.sh): `curl -fsSL https://kody-w.github.io/grail-layers/add.sh | bash -s -- starter-personal` (any mix of RAR packs, all or nothing)
 - [The pattern and the layer contract](https://kody-w.github.io/grail-layers/README.md)
 - [Layer files in RAR](https://kody-w.github.io/RAR/stacks/grail-layers/pack.json)
 - [Registry](https://kody-w.github.io/grail-layers/registry.json)
