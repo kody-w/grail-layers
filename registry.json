@@ -1,11 +1,11 @@
 {
   "schema": "grail-layers-registry/1.0",
   "spec": "rapp-static-api/1.1",
-  "generated": "2026-11-04T13:21:32Z",
+  "generated": "2026-11-04T13:38:43Z",
   "pages": "https://kody-w.github.io/grail-layers/",
   "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/",
   "summary": {
-    "files": 14,
+    "files": 15,
     "layers_source": "https://kody-w.github.io/RAR/stacks/grail-layers/pack.json"
   },
   "entries": [
@@ -81,10 +81,10 @@
     },
     {
       "name": "packs.py",
-      "sha256": "6390414c5536c43a4354a598d94f51a5fdc02689c96d2d9f8c81bf84e038cefe",
+      "sha256": "a83861dee0c6bedad740bb25e16333711e47bc2f7ea009b573aed270e336940f",
       "url": "https://kody-w.github.io/grail-layers/packs.py",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/packs.py",
-      "sha8": "6390414c5536"
+      "sha8": "a83861dee0c6"
     },
     {
       "name": "add.sh",
@@ -95,10 +95,17 @@
     },
     {
       "name": "README.md",
-      "sha256": "2f67dd588da922a0c1e1d08f4873a9ecbf2a130b48031e89ab98fe018f6c9c9f",
+      "sha256": "da728fff12a803392db60158a79f0ab8414ff7bba4c27252e515bfac45ba8a12",
       "url": "https://kody-w.github.io/grail-layers/README.md",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/README.md",
-      "sha8": "2f67dd588da9"
+      "sha8": "da728fff12a8"
+    },
+    {
+      "name": "ALM.md",
+      "sha256": "95e2032d612a8bae5348f09309138953f0b68dafd2ae05152ba1376b0cda2370",
+      "url": "https://kody-w.github.io/grail-layers/ALM.md",
+      "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/ALM.md",
+      "sha8": "95e2032d612a"
     },
     {
       "name": "llms.txt",

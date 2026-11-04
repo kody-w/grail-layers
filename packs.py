@@ -53,7 +53,7 @@ def resolve(names, packs, seen=None, out=None):
         if n not in packs:
             raise SystemExit(f"There is no pack called '{n}'. See {RAR}/distros.html")
         pj = get(f"{RAR}/{packs[n]['path']}/pack.json")
-        resolve((pj.get("install") or {}).get("includes") or [], packs, seen, out)  # what it includes comes first
+        resolve(sorted((pj.get("install") or {}).get("includes") or []), packs, seen, out)  # includes first, sorted
         out.append((n, pj))
     return out
 
@@ -65,14 +65,20 @@ def main():
     ap.add_argument("--port", type=int, default=int(os.environ.get("PORT", 7071)))
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--no-restart", action="store_true")
+    ap.add_argument("--skip", action="append", default=[], help="a card to leave out: an agent file or a layer id (repeatable)")
+    ap.add_argument("--plan-json", action="store_true", help="print the plan as JSON and change nothing")
     ap.add_argument("packs", nargs="+")
     a = ap.parse_args()
     kernel = Path(a.kernel).expanduser().resolve()
     ksha = hashlib.sha256(kernel.read_bytes()).hexdigest()
     reg = get(f"{RAR}/registry.json")
     packs = {p["name"]: p for p in reg.get("stack_packs", []) if p.get("_verified") is True}
-    chosen = resolve(a.packs, packs)
-    print("Packs:", ", ".join(n for n, _ in chosen))
+    chosen = resolve(sorted(set(a.packs)), packs)  # any order, any duplicates in -> one canonical order out
+    skip = set(a.skip)
+    if a.plan_json:
+        a.dry_run = True
+    say = (lambda *x, **k: None) if a.plan_json else print
+    say("Packs:", ", ".join(n for n, _ in chosen))
 
     # present shape (what the device already runs)
     sys.path.insert(0, str(HOME))
@@ -94,6 +100,8 @@ def main():
             if seed is not None and part["id"] not in seed:
                 continue
             part = {k: part[k] for k in KEYS}
+            if part["id"] in skip:
+                continue
             same_point = [p for p in parts if p["point"] == part["point"] and p["id"] != part["id"]]
             if same_point:
                 refusals.append(f"{n} needs {part['id']} at the {part['point']} point, which {same_point[0]['id']} already holds")
@@ -102,7 +110,7 @@ def main():
         for f, meta in (pj.get("files") or {}).items():
             if not f.endswith("_agent.py"):
                 continue
-            if any(x[2] == meta["sha256"] for x in agents):  # same bytes from two packs: one file (content-addressed)
+            if f in skip or any(x[2] == meta["sha256"] for x in agents):  # same bytes from two packs: one file (content-addressed)
                 continue
             agents.append([f, f"{RAR}/{packs[n]['path']}/{f}", meta["sha256"], n])
     # Never overwrite: a name already taken (by another selected pack, or by a different file already in your
@@ -113,19 +121,40 @@ def main():
         f, sha, n = x[0], x[2], x[3]
         on_disk = adir / f
         if on_disk.is_file() and hashlib.sha256(on_disk.read_bytes()).hexdigest() == sha:
-            print(f"  {f} is already installed (same bytes)"); continue
+            say(f"  {f} is already installed (same bytes)"); continue
         if on_disk.is_file() and f not in taken and _tool(on_disk.read_bytes()) == _tool(bodies_peek(x[1])):
             back = HOME / "agent-backups"
             if not a.dry_run:
                 back.mkdir(parents=True, exist_ok=True)
                 (back / f"{f}.{hashlib.sha256(on_disk.read_bytes()).hexdigest()[:8]}").write_bytes(on_disk.read_bytes())
-            print(f"  {f}: newer version of the same agent; the old copy is kept in {back}")
+            say(f"  {f}: newer version of the same agent; the old copy is kept in {back}")
         elif f in taken or on_disk.is_file():
             scoped = n.replace("-", "_") + "__" + f
-            print(f"  {f} from {n} is a different file from the one already named {f}; installing it as {scoped}")
+            say(f"  {f} from {n} is a different file from the one already named {f}; installing it as {scoped}")
             x[0] = f = scoped
         taken[f] = sha; keep.append(tuple(x))
     agents = keep
+    POINT_ORDER = ["kernel", "auth", "provider", "storage", "agents", "transport"]  # one canonical layer order
+    parts = sorted(parts, key=lambda p: (POINT_ORDER.index(p["point"]) if p["point"] in POINT_ORDER else 99, p["id"]))
+    warn = []
+    for n, pj in chosen:  # a kept card that needs a skipped one still installs, with a plain warning
+        for part in (pj.get("install") or {}).get("parts") or []:
+            if part["id"] in skip and any(i for i in (pj.get("install") or {}).get("includes") or []):
+                warn.append(f"you left out {part['id']}; packs that include {n} may not work fully without it")
+    for n, pj in chosen:
+        for inc in (pj.get("install") or {}).get("includes") or []:
+            dpj = dict(chosen).get(inc) or {}
+            for part in (dpj.get("install") or {}).get("parts") or []:
+                if part["id"] in skip:
+                    warn.append(f"{n} relies on {part['id']} from {inc}, which you left out")
+    warn = sorted(set(warn))
+    if a.plan_json:
+        print(json.dumps({"packs": [n for n, _ in chosen], "refused": refusals, "warnings": warn,
+                          "layers": [p["id"] + "@" + p["sha256"][:12] for p in parts],
+                          "agents": sorted([f, sha[:12], n] for f, _, sha, n in agents)}, sort_keys=True))
+        return 2 if refusals else 0
+    for w in warn:
+        print("  Note:", w)
     if refusals:
         print("Nothing was installed:\n  - " + "\n  - ".join(refusals)); return 2
     new_parts = [p for p in parts if p not in present]

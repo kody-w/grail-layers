@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 R = Path(__file__).resolve().parent
 BASE, RAW = "https://kody-w.github.io/grail-layers", "https://raw.githubusercontent.com/kody-w/grail-layers/main"
-SERVED = ["install.sh", "uninstall.sh", "grail_layers.py", "hologram.py", "shape_lens.py", "rapp.py", "brainstem_shape_agent.py", "chaos.py", "succession.py", "succession_drill.py", "packs.py", "add.sh", "README.md", "llms.txt"]
+SERVED = ["install.sh", "uninstall.sh", "grail_layers.py", "hologram.py", "shape_lens.py", "rapp.py", "brainstem_shape_agent.py", "chaos.py", "succession.py", "succession_drill.py", "packs.py", "add.sh", "README.md", "ALM.md", "llms.txt"]
 llms = f"""# grail-layers
 
 > Every grail (Brainstem kernel) update ships as a layer over the unchanged grail; if a layer fails, plain grail runs.

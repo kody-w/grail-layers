@@ -116,3 +116,7 @@ Rules:
 |---|---|---|
 | `providers` | The one provider part: Responses-API-only models (gpt-6.1-sol, gpt-6-luna and others) and this machine's Ollama models (`ollama/<name>`, tools included) in the unchanged grail. `responses_models` and `local_models` are aliases of it (still served, not seeded) | Proven on grail 0.6.16 in the lab (42 models, gpt-6.1-sol and ollama/llama3.2 each ran an agent through a tool call, 1 of 1 each) and live on one Mac through the chain gate (tiles 13 and 15, gates passed, boot with no fallback) |
 | `journal_tap` | Every chat turn (plain and streamed) is recorded in the owner's Brainstem Journal on this device, by default; the chat page keeps talking to :7071. Pause with a file (the JournalRecall agent toggles it in chat). No journal running: one line in the log, nothing else | Proven on grail 0.6.16 and 0.6.17 on lab ports: 2 of 2 turns recorded on each (one `/chat`, one `/chat/stream`), replies byte-identical to the kernel's, a paused store recorded 0 of 1, a missing journal left 2 of 2 answers untouched |
+
+## Lifecycle
+
+How packs are authored, carted, gated, upgraded, undone and retired, with the free-tuition table: [ALM.md](ALM.md).
