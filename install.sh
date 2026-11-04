@@ -22,7 +22,21 @@ if [ -f "${BRAINSTEM_HOME:-$HOME/.brainstem}/src/rapp_brainstem/brainstem.py" ] 
 fi
 if [ "${SKIP_GRAIL:-0}" != "1" ]; then
   say "Step 1 of 3: installing the grail (the base), with its own one-liner"
-  curl -fsSL "$GRAIL_ONE_LINER" | bash
+  # The grail's one-liner ends by running the Brainstem in the foreground (by design; the grail never changes), so a
+  # fresh install would stop here forever. Run it beside us, wait until the engine answers, then stop only that first
+  # foreground copy (no conversation exists yet); the supervisor below takes over the same port.
+  ( curl -fsSL "$GRAIL_ONE_LINER" | bash -s -- ${GRAIL_VERSION:+--version "$GRAIL_VERSION"} ) </dev/null 2>&1 &   # GRAIL_VERSION pins the published grail release
+  GRAIL_JOB=$!
+  for _ in $(seq 1 900); do
+    curl -sf -o /dev/null --max-time 1 "http://127.0.0.1:${PORT:-7071}/health" && break
+    kill -0 "$GRAIL_JOB" 2>/dev/null || break
+    sleep 1
+  done
+  curl -sf -o /dev/null --max-time 2 "http://127.0.0.1:${PORT:-7071}/health" || { echo "The grail did not start; nothing to layer over."; exit 1; }
+  for P_ in $(lsof -tiTCP:"${PORT:-7071}" -sTCP:LISTEN 2>/dev/null); do
+    ps -o command= -p "$P_" | grep -q "brainstem.py" && kill "$P_" 2>/dev/null   # only the Brainstem the grail just started
+  done
+  wait "$GRAIL_JOB" 2>/dev/null || true
 fi
 KERNEL="$BS/src/rapp_brainstem/brainstem.py"
 [ -f "$KERNEL" ] || { echo "The grail is not installed at $KERNEL; nothing to layer over."; exit 1; }
@@ -70,6 +84,20 @@ PY
 say "Step 3 of 3: starting the Brainstem as grail + layers"
 PLIST="$HOME/Library/LaunchAgents/com.brainstem.server.plist"
 SUP_PID="$(cat "$DEST/supervisor.pid" 2>/dev/null || true)"
+# A fresh Mac may have no login service from the grail (its one-liner only makes one when run interactively).
+# Write the plain-grail job first; the step below keeps it as the restore point and wraps it with the supervisor.
+if [ "$(uname)" = "Darwin" ] && [ ! -f "$PLIST" ] && [ "${GRAIL_LAYERS_NO_LAUNCHD:-0}" != "1" ] && [ -z "${SUP_PID:-}" ]; then
+  mkdir -p "$HOME/Library/LaunchAgents"
+  cat > "$PLIST" <<EOP
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict><key>Label</key><string>com.brainstem.server</string>
+<key>ProgramArguments</key><array><string>$PY</string><string>$KERNEL</string></array>
+<key>WorkingDirectory</key><string>$(dirname "$KERNEL")</string>
+<key>RunAtLoad</key><true/><key>KeepAlive</key><true/>
+<key>StandardOutPath</key><string>$BS/brainstem.log</string><key>StandardErrorPath</key><string>$BS/brainstem.log</string>
+</dict></plist>
+EOP
+fi
 if [ -n "$SUP_PID" ] && kill -0 "$SUP_PID" 2>/dev/null && ps -o command= -p "$SUP_PID" | grep -q grail_layers.py; then  # only a handover-capable supervisor writes supervisor.pid (an old one would die on HUP)
   # Live update: the running supervisor hands over to a fresh copy (new code, gated), then re-execs itself.
   LB="$DEST/last-boot.json"; BEFORE="$(stat -f %m "$LB" 2>/dev/null || echo 0)"
