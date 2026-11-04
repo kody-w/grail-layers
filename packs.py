@@ -461,7 +461,10 @@ def main():
     for n, pj in chosen:
         pin = (pj.get("kernel") or {}).get("sha256")
         # Proven beats pinned: a kernel every one of the pack's layer parts was proven against is accepted too.
-        lparts = [p for p in pj.get("parts", []) if p.get("kind") == "layer"]
+        inst_ = pj.get("install") or {}
+        seed_ = set(inst_.get("seed") or [])
+        lparts = [p for p in (inst_.get("parts") or pj.get("parts") or [])
+                  if p.get("kind") == "layer" and (not seed_ or p.get("id") in seed_)]
         proven = bool(lparts) and all(ksha in (p.get("proven_grail") or []) for p in lparts)
         if pin and pin != ksha and not proven:
             refusals.append(f"{n} is built for a different Brainstem kernel ({pin[:12]}; yours is {ksha[:12]})")
