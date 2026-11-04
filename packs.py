@@ -18,10 +18,11 @@ import argparse, hashlib, json, os, re, subprocess, sys, time, urllib.request
 from pathlib import Path
 
 RAR = os.environ.get("RAR_PAGES", "https://kody-w.github.io/RAR").rstrip("/")
-HOME = Path(os.environ.get("GRAIL_LAYERS_HOME") or Path.home() / ".brainstem" / "layers")
 KEYS = ("id", "kind", "point", "file", "sha256", "locator")
 EXTRA = ("_sense.py", "_page.py", "_organ.py")  # organ is an alias of page
-BASE = Path(os.path.expanduser("~/.brainstem"))
+BASE = Path(os.environ.get("BRAINSTEM_HOME") or os.path.expanduser("~/.brainstem"))
+HOME = Path(os.environ.get("GRAIL_LAYERS_HOME") or BASE / "layers")
+DEFAULT_HOME = BASE.resolve() == Path(os.path.expanduser("~/.brainstem")).resolve()
 
 
 def extra_dir(f):
@@ -238,7 +239,9 @@ def main():
     record.write_text(json.dumps(have, indent=1))
 
     need = new_parts or any(not f.endswith("_sense.py") for f in xbodies)  # pages are added when the Brainstem starts
-    if need and not a.no_restart and sys.platform == "darwin":
+    if need and not a.no_restart and not DEFAULT_HOME:  # the launchd service runs the default home only: never restart someone else's Brainstem
+        print(f"Restart the Brainstem at {BASE} to load the new layers and pages (its service is not the default one).")
+    elif need and not a.no_restart and sys.platform == "darwin":
         subprocess.run(["launchctl", "kickstart", "-k", f"gui/{os.getuid()}/com.brainstem.server"], capture_output=True)
         for _ in range(90):
             try:

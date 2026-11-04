@@ -23,6 +23,10 @@ once, and use only these for the whole run (never mix revisions):
 - `GL = https://raw.githubusercontent.com/kody-w/grail-layers/<gl-sha>`
 - Prefix every install command with `RAR_PAGES=$RAR GRAIL_LAYERS_URL=$GL`. Name both short shas in your final reply.
 
+Which Brainstem: the person's own at `http://localhost:7071` with home `~/.brainstem`, unless the environment sets
+`BRAINSTEM_PORT` or `BRAINSTEM_HOME`; then use those everywhere below (`--port $BRAINSTEM_PORT` on packs.py and add.sh,
+`$BRAINSTEM_HOME` in place of `~/.brainstem`). Never install into a different Brainstem than the one you checked.
+
 Windows: if the computer is Windows without WSL, say in one sentence that RAR Easy Mode needs macOS, Linux or WSL
 today, and stop. Never try a partial install.
 

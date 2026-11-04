@@ -6,7 +6,7 @@
 # Brainstem uses them; agents are added only after that passes. Undo layers: say "undo" to your Brainstem.
 set -euo pipefail
 SELF="${GRAIL_LAYERS_URL:-https://kody-w.github.io/grail-layers}"
-BS="${BRAINSTEM_HOME:-$HOME/.brainstem}"; DEST="$BS/layers"
+BS="${BRAINSTEM_HOME:-$HOME/.brainstem}"; DEST="$BS/layers"; export BRAINSTEM_HOME="$BS"
 [ "$#" -gt 0 ] || { echo "Name at least one pack, e.g. starter-personal. See https://kody-w.github.io/RAR/distros.html"; exit 2; }
 if [ ! -f "$DEST/grail_layers.py" ]; then
   echo "First time: installing grail + layers (your Brainstem, unchanged, with a safety net)"
