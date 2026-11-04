@@ -28,6 +28,22 @@ def get(url, binary=False):
     return b if binary else json.loads(b)
 
 
+_peek = {}
+
+
+def bodies_peek(url):
+    if url not in _peek:
+        _peek[url] = get(url, binary=True)
+    return _peek[url]
+
+
+def _tool(b):
+    """The agent's tool name (what the kernel registers): same name = same agent, so a new file upgrades it."""
+    import re
+    m = re.search(rb'self\.name\s*=\s*["\']([^"\']+)["\']', b)
+    return m.group(1) if m else None
+
+
 def resolve(names, packs, seen=None, out=None):
     seen, out = seen if seen is not None else set(), out if out is not None else []
     for n in names:
@@ -98,7 +114,13 @@ def main():
         on_disk = adir / f
         if on_disk.is_file() and hashlib.sha256(on_disk.read_bytes()).hexdigest() == sha:
             print(f"  {f} is already installed (same bytes)"); continue
-        if f in taken or on_disk.is_file():
+        if on_disk.is_file() and f not in taken and _tool(on_disk.read_bytes()) == _tool(bodies_peek(x[1])):
+            back = HOME / "agent-backups"
+            if not a.dry_run:
+                back.mkdir(parents=True, exist_ok=True)
+                (back / f"{f}.{hashlib.sha256(on_disk.read_bytes()).hexdigest()[:8]}").write_bytes(on_disk.read_bytes())
+            print(f"  {f}: newer version of the same agent; the old copy is kept in {back}")
+        elif f in taken or on_disk.is_file():
             scoped = n.replace("-", "_") + "__" + f
             print(f"  {f} from {n} is a different file from the one already named {f}; installing it as {scoped}")
             x[0] = f = scoped
@@ -114,7 +136,7 @@ def main():
 
     bodies = {}
     for f, url, sha, n in agents:  # fetch and check every agent BEFORE changing anything
-        b = get(url, binary=True)
+        b = bodies_peek(url)
         if hashlib.sha256(b).hexdigest() != sha:
             print(f"Nothing was installed: {f} from {n} does not match its sha256."); return 2
         bodies[f] = (b, sha)
