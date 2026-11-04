@@ -14,12 +14,20 @@ Undo the layers with the supervisor's --undo; agents stay in agents/ (your folde
 Who did this before: Debian tasks/metapackages (a starter is just a list), apt Conflicts: (refuse before touching
 anything), NixOS/Silverblue (one transaction, one undo).
 """
-import argparse, hashlib, json, os, subprocess, sys, time, urllib.request
+import argparse, hashlib, json, os, re, subprocess, sys, time, urllib.request
 from pathlib import Path
 
 RAR = os.environ.get("RAR_PAGES", "https://kody-w.github.io/RAR").rstrip("/")
 HOME = Path(os.environ.get("GRAIL_LAYERS_HOME") or Path.home() / ".brainstem" / "layers")
 KEYS = ("id", "kind", "point", "file", "sha256", "locator")
+EXTRA = ("_sense.py", "_page.py", "_organ.py")  # organ is an alias of page
+BASE = Path(os.path.expanduser("~/.brainstem"))
+
+
+def extra_dir(f):
+    if f.endswith("_sense.py"):
+        return Path(os.environ.get("BRAINSTEM_SENSES_DIR") or BASE / "senses")
+    return Path(os.environ.get("BRAINSTEM_PAGES_DIR") or BASE / "pages")
 
 
 def get(url, binary=False):
@@ -73,7 +81,8 @@ def main():
     ksha = hashlib.sha256(kernel.read_bytes()).hexdigest()
     reg = get(f"{RAR}/registry.json")
     packs = {p["name"]: p for p in reg.get("stack_packs", []) if p.get("_verified") is True}
-    chosen = resolve(sorted(set(a.packs)), packs)  # any order, any duplicates in -> one canonical order out
+    catalog = sorted({x for x in a.packs if x.startswith("@")})  # one cart: store agents by name (@publisher/name_agent)
+    chosen = resolve(sorted(set(a.packs) - set(catalog)), packs)  # any order, any duplicates in -> one canonical order out
     skip = set(a.skip)
     if a.plan_json:
         a.dry_run = True
@@ -89,7 +98,7 @@ def main():
         shape, _ = chain.authorised()
         present = [{k: p[k] for k in KEYS} for p in shape["parts"]]
 
-    parts, agents, refusals = list(present), [], []
+    parts, agents, refusals, extras = list(present), [], [], []
     for n, pj in chosen:
         pin = (pj.get("kernel") or {}).get("sha256")
         if pin and pin != ksha:
@@ -108,11 +117,24 @@ def main():
                 continue
             parts = [p for p in parts if p["id"] != part["id"]] + [part]
         for f, meta in (pj.get("files") or {}).items():
+            if f.endswith(EXTRA):  # senses and pages: files in their own folders, same checks as agents
+                if f not in skip and not any(x[2] == meta["sha256"] for x in extras):
+                    extras.append([f, f"{RAR}/{packs[n]['path']}/{f}", meta["sha256"], n])
+                continue
             if not f.endswith("_agent.py"):
                 continue
             if f in skip or any(x[2] == meta["sha256"] for x in agents):  # same bytes from two packs: one file (content-addressed)
                 continue
             agents.append([f, f"{RAR}/{packs[n]['path']}/{f}", meta["sha256"], n])
+    by_name = {x.get("name"): x for x in reg.get("agents", [])}
+    for name in catalog:
+        e = by_name.get(name)
+        if not e or not e.get("_file") or not e.get("_sha256"):
+            refusals.append(f"{name} is not in the RAR catalog"); continue
+        f = e["_file"].rsplit("/", 1)[1]
+        if f in skip or any(x[2] == e["_sha256"] for x in agents):
+            continue
+        agents.append([f, f"{RAR}/{e['_file']}", e["_sha256"], name])
     # Never overwrite: a name already taken (by another selected pack, or by a different file already in your
     # agents/ folder) gets the pack's name in front; same bytes already installed are skipped.
     adir = Path(os.environ.get("AGENTS_PATH") or kernel.parent / "agents")
@@ -129,7 +151,7 @@ def main():
                 (back / f"{f}.{hashlib.sha256(on_disk.read_bytes()).hexdigest()[:8]}").write_bytes(on_disk.read_bytes())
             say(f"  {f}: newer version of the same agent; the old copy is kept in {back}")
         elif f in taken or on_disk.is_file():
-            scoped = n.replace("-", "_") + "__" + f
+            scoped = re.sub(r"\W", "_", n).strip("_") + "__" + f
             say(f"  {f} from {n} is a different file from the one already named {f}; installing it as {scoped}")
             x[0] = f = scoped
         taken[f] = sha; keep.append(tuple(x))
@@ -151,7 +173,8 @@ def main():
     if a.plan_json:
         print(json.dumps({"packs": [n for n, _ in chosen], "refused": refusals, "warnings": warn,
                           "layers": [p["id"] + "@" + p["sha256"][:12] for p in parts],
-                          "agents": sorted([f, sha[:12], n] for f, _, sha, n in agents)}, sort_keys=True))
+                          "agents": sorted([f, sha[:12], n] for f, _, sha, n in agents),
+                          "extras": sorted([f, sha[:12], n] for f, _, sha, n in extras)}, sort_keys=True))
         return 2 if refusals else 0
     for w in warn:
         print("  Note:", w)
@@ -160,6 +183,7 @@ def main():
     new_parts = [p for p in parts if p not in present]
     print(f"Layers to add: {', '.join(p['id'] for p in new_parts) or 'none'}")
     print(f"Agents to add: {', '.join(f for f, *_ in agents) or 'none'}")
+    print(f"Senses and pages to add: {', '.join(f for f, *_ in extras) or 'none'}")
     if a.dry_run:
         return 0
 
@@ -169,6 +193,12 @@ def main():
         if hashlib.sha256(b).hexdigest() != sha:
             print(f"Nothing was installed: {f} from {n} does not match its sha256."); return 2
         bodies[f] = (b, sha)
+    xbodies = {}
+    for f, url, sha, n in extras:
+        b = bodies_peek(url)
+        if hashlib.sha256(b).hexdigest() != sha:
+            print(f"Nothing was installed: {f} from {n} does not match its sha256."); return 2
+        xbodies[f] = b
 
     sup = HOME / "grail_layers.py"
     if new_parts:
@@ -193,12 +223,22 @@ def main():
         with urllib.request.urlopen(req, timeout=60) as r:
             print(f"  agent {f}: {json.loads(r.read()).get('status')}")
 
+    for f, b in xbodies.items():  # same bytes: nothing to do; newer bytes: the old copy is kept, never lost
+        d = extra_dir(f); d.mkdir(parents=True, exist_ok=True); t = d / f
+        if t.is_file() and t.read_bytes() == b:
+            print(f"  {f}: already installed"); continue
+        if t.is_file():
+            back = HOME / "extra-backups"; back.mkdir(parents=True, exist_ok=True)
+            (back / f"{f}.{hashlib.sha256(t.read_bytes()).hexdigest()[:8]}").write_bytes(t.read_bytes())
+        t.write_bytes(b); print(f"  {f}: installed in {d}")
+
     record = HOME / "packs.json"
     have = json.loads(record.read_text()) if record.exists() else {"packs": []}
     have["packs"] = sorted(set(have["packs"]) | {n for n, _ in chosen})
     record.write_text(json.dumps(have, indent=1))
 
-    if new_parts and not a.no_restart and sys.platform == "darwin":
+    need = new_parts or any(not f.endswith("_sense.py") for f in xbodies)  # pages are added when the Brainstem starts
+    if need and not a.no_restart and sys.platform == "darwin":
         subprocess.run(["launchctl", "kickstart", "-k", f"gui/{os.getuid()}/com.brainstem.server"], capture_output=True)
         for _ in range(90):
             try:
@@ -208,7 +248,7 @@ def main():
         time.sleep(2)
         boot = json.loads((HOME / "last-boot.json").read_text())
         print(f"Restarted: {boot.get('what')} ({'FELL BACK: ' if boot.get('fallback') else ''}{boot.get('why')})")
-    elif new_parts:
+    elif need:
         print("Restart your Brainstem to run the new layers.")
     print("Done. Your Brainstem now has: " + ", ".join(have["packs"]))
     return 0
