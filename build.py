@@ -10,6 +10,8 @@ llms = f"""# grail-layers
 
 > Every grail (Brainstem kernel) update ships as a layer over the unchanged grail; if a layer fails, plain grail runs.
 
+Any AI: the one page for all of RAPP (protocol, agents, packs, lifecycle, how to participate) is https://kody-w.github.io/RAR/RAPP.md
+
 - [Install (grail, then layers)]({BASE}/install.sh): `curl -fsSL {BASE}/install.sh | bash`
 - [Uninstall (plain grail)]({BASE}/uninstall.sh)
 - [Supervisor]({BASE}/grail_layers.py)

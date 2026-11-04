@@ -1,7 +1,7 @@
 {
   "schema": "grail-layers-registry/1.0",
   "spec": "rapp-static-api/1.1",
-  "generated": "2026-11-04T14:04:11Z",
+  "generated": "2026-11-04T14:29:03Z",
   "pages": "https://kody-w.github.io/grail-layers/",
   "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/",
   "summary": {
@@ -109,10 +109,10 @@
     },
     {
       "name": "llms.txt",
-      "sha256": "e6d86870385d8b00e674c29216cd9487c28adb5c05236053b21a1cf0e65cc505",
+      "sha256": "a460397ad03cbeab185eb88257599ac11801c30771723da4f7dbcdab59917ade",
       "url": "https://kody-w.github.io/grail-layers/llms.txt",
       "raw": "https://raw.githubusercontent.com/kody-w/grail-layers/main/llms.txt",
-      "sha8": "e6d86870385d"
+      "sha8": "a460397ad03c"
     }
   ]
 }

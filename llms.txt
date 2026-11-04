@@ -2,6 +2,8 @@
 
 > Every grail (Brainstem kernel) update ships as a layer over the unchanged grail; if a layer fails, plain grail runs.
 
+Any AI: the one page for all of RAPP (protocol, agents, packs, lifecycle, how to participate) is https://kody-w.github.io/RAR/RAPP.md
+
 - [Install (grail, then layers)](https://kody-w.github.io/grail-layers/install.sh): `curl -fsSL https://kody-w.github.io/grail-layers/install.sh | bash`
 - [Uninstall (plain grail)](https://kody-w.github.io/grail-layers/uninstall.sh)
 - [Supervisor](https://kody-w.github.io/grail-layers/grail_layers.py)
