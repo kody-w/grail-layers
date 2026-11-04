@@ -251,6 +251,14 @@ def healthy(p, port, probe, wait=60):
             return True, "health ok; /chat probe answered"
         return False, f"/chat probe gave {code} with no response"
     except Exception as e:
+        # A fresh Brainstem nobody has signed in to yet cannot chat at all; that says nothing about the layers.
+        body = ""
+        try:
+            body = e.read().decode(errors="replace") if hasattr(e, "read") else ""
+        except Exception:
+            pass
+        if "Not authenticated" in body:
+            return True, "health ok; not signed in to GitHub yet, so the /chat probe is skipped"
         return False, f"/chat probe failed: {e}"
 
 
